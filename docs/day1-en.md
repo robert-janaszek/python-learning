@@ -1,6 +1,6 @@
-## Day 1: Tooling and clean syntax (`uv`, `Ruff`, comprehensions)
+## Day 1: Tooling and clean syntax (`uv`, `Ruff`, `for`, comprehensions)
 
-**Goal:** Set up the environment in 2 minutes and master the collection-operations idiom.
+**Goal:** Set up the environment in 2 minutes, then learn `for`, dictionaries, and the collection-operations idiom.
 
 1. **Environment setup:**
    * Install `uv` (if you do not have it yet): `curl -LsSf https://astral.sh/uv/install.sh | sh`
@@ -10,11 +10,17 @@
    * Run the code: `uv run python-week1` (from the `python-week1` directory). This calls `python_week1:main` from `pyproject.toml`. `uv run` uses the local `.venv`; you do not need to activate it by hand.
    * `uv run python -m python_week1` will do nothing until the package has a `__main__.py`, or `main()` is invoked on import.
 
-2. **Coding exercise — event logs:**
+2. **Primer: dictionaries and the `for` loop**
 
-The data is a list of **dictionaries**, not objects. Read a field by key: `log["action"]`, **not** `log.action`.
+An event is a **dictionary** (`dict`): key → value pairs.
 
-Keep one list in `main()` and call three functions on it (`print` each). Do not use `.map()` / `.filter()`.
+```python
+log = {"user_id": 1, "action": "login", "duration": 120}
+```
+
+You look up a value with **square brackets and the key**: `log["action"]` is `"login"`, `log["duration"]` is `120`. The key is a string, the same one you wrote on the left of the literal.
+
+Several events are a **list** of dicts. A Python `for` loop walks the collection’s elements (here: each dict in turn), not indexes. The loop body is indented.
 
 ```python
 logs = [
@@ -23,19 +29,29 @@ logs = [
     {"user_id": 1, "action": "logout", "duration": 90},
     {"user_id": 1, "action": "login", "duration": 30},
 ]
+
+for log in logs:
+    print(log["action"], log["duration"])
 ```
 
-A `for` inside `[...]` or `{...}` is comprehension syntax — that is the point. Use a classic loop:
+An `if` inside the loop skips selected rows. You build a new list with `.append`:
 
 ```python
-result = []
-for x in items:
-    ...
+durations = []
+for log in logs:
+    if log["action"] == "login":
+        durations.append(log["duration"])
 ```
 
-**only** in exercise 2c.
+That is the expanded form of the list comprehension in exercise 3a. Run the `print` loop first so you can see what each `log` contains.
 
-**2a. List comprehension — filter + map**
+3. **Coding exercise — event logs:**
+
+Keep one `logs` list in `main()` (as above) and call three functions on it (`print` each). Do not use `.map()` / `.filter()`.
+
+A comprehension is the same loop written as an expression. The `for` inside `[...]` or `{...}` belongs to that syntax. In exercise 3c you stay with a `for` *statement*, because you are accumulating a sum in a variable.
+
+**3a. List comprehension — filter + map**
 
 Syntax: `[expression for item in collection if condition]`.
 
@@ -45,7 +61,7 @@ Write `login_durations(logs: list[dict]) -> list[int]`: the `duration` values fo
 
 Expected: `[120, 110, 30]`.
 
-**2b. Dict comprehension — last value wins**
+**3b. Dict comprehension — last value wins**
 
 Syntax: `{key: value for item in collection if condition}`.
 
@@ -55,14 +71,14 @@ Write `last_login_duration(logs: list[dict]) -> dict[int, int]`: `user_id → du
 
 Expected: `{1: 30, 2: 110}`.
 
-**2c. `defaultdict` — sum by key**
+**3c. `defaultdict` — sum by key**
 
-Summing is not a comprehension job. Write `total_login_duration(logs: list[dict]) -> dict[int, int]` with `collections.defaultdict(int)` and a `for` loop:
+Summing is not a comprehension job. Write `total_login_duration(logs: list[dict]) -> dict[int, int]` with `collections.defaultdict(int)` and a `for` loop (same shape as the primer, plus `+=`):
 
 * `totals = defaultdict(int)` — a missing key is `0`
 * for each login: `totals[user_id] += duration`
 
-You can reuse 2a or filter in the loop. Return `dict(totals)` or the `defaultdict` itself.
+You can reuse 3a or filter in the loop. Return `dict(totals)` or the `defaultdict` itself.
 
 Expected: `{1: 150, 2: 110}`.
 

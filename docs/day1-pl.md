@@ -1,6 +1,6 @@
-## Dzień 1: Tooling i czysta składnia (`uv`, `Ruff`, comprehensions)
+## Dzień 1: Tooling i czysta składnia (`uv`, `Ruff`, `for`, comprehensions)
 
-**Cel:** Konfiguracja środowiska w 2 minuty i opanowanie idiomu operacji na kolekcjach.
+**Cel:** Konfiguracja środowiska w 2 minuty oraz pętla `for`, słownik i idiom operacji na kolekcjach.
 
 1. **Konfiguracja środowiska:**
 
@@ -11,32 +11,48 @@
 - Uruchom kod: `uv run python-week1` (z katalogu `python-week1`). To woła `python_week1:main` z `pyproject.toml`. `uv run` używa lokalnego `.venv`, nie musisz go aktywować ręcznie.
 - `uv run python -m python_week1` nic nie wykona, dopóki w pakiecie nie ma `__main__.py`, a `main()` nie jest wołane przy imporcie.
 
-1. **Zadanie kodowe — logi zdarzeń:**
+2. **Wprowadzenie: słownik i pętla `for`**
 
-Dane to lista **słowników**, nie obiektów. Pole czytasz kluczem: `log["action"]`, **nie** `log.action`.
+Zdarzenie zapisujesz jako **słownik** (`dict`): pary klucz → wartość.
 
-W `main()` trzymaj jedną listę i wołaj z niej trzy funkcje (`print` każdej). Nie używaj `.map()` / `.filter()`.
-
+```python
+log = {"user_id": 1, "action": "login", "duration": 120}
 ```
+
+Wartość wyciągasz **kluczem w nawiasach kwadratowych**: `log["action"]` to `"login"`, `log["duration"]` to `120`. Klucz jest stringiem, takim samym jak po lewej stronie w literale.
+
+Kilka zdarzeń to **lista** słowników. Pętla `for` w Pythonie idzie po elementach kolekcji (tu: po kolejnych słownikach), nie po indeksach. Ciało pętli jest wcięte.
+
+```python
 logs = [
     {"user_id": 1, "action": "login", "duration": 120},
     {"user_id": 2, "action": "login", "duration": 110},
     {"user_id": 1, "action": "logout", "duration": 90},
     {"user_id": 1, "action": "login", "duration": 30},
 ]
+
+for log in logs:
+    print(log["action"], log["duration"])
 ```
 
-`for` wewnątrz `[...]` albo `{...}` to składnia comprehension — tak ma być. Klasycznej pętli:
+Warunek `if` wewnątrz pętli pomija wybrane wiersze. Nową listę składasz przez `.append`:
 
 ```python
-result = []
-for x in items:
-    ...
+durations = []
+for log in logs:
+    if log["action"] == "login":
+        durations.append(log["duration"])
 ```
 
-użyj **tylko** w zadaniu 2c.
+To jest rozwinięta postać list comprehension z zadania 3a. Najpierw odpal pętlę z `print`, żeby zobaczyć, co jest w każdym `log`.
 
-**2a. List comprehension — filtr + mapa**
+3. **Zadanie kodowe — logi zdarzeń:**
+
+W `main()` trzymaj jedną listę `logs` (jak wyżej) i wołaj z niej trzy funkcje (`print` każdej). Nie używaj `.map()` / `.filter()`.
+
+Comprehension to ta sama pętla zapisana jako wyrażenie. `for` wewnątrz `[...]` albo `{...}` należy do tej składni. W zadaniu 3c zostajesz przy pętli-instrukcji, bo zbierasz sumę w zmiennej.
+
+**3a. List comprehension — filtr + mapa**
 
 Składnia: `[wyrażenie for element in kolekcja if warunek]`.
 
@@ -46,7 +62,7 @@ Napisz `login_durations(logs: list[dict]) -> list[int]`: lista `duration` tylko 
 
 Oczekiwany wynik: `[120, 110, 30]`.
 
-**2b. Dict comprehension — ostatnia wartość wygrywa**
+**3b. Dict comprehension — ostatnia wartość wygrywa**
 
 Składnia: `{klucz: wartość for element in kolekcja if warunek}`.
 
@@ -56,14 +72,14 @@ Napisz `last_login_duration(logs: list[dict]) -> dict[int, int]`: `user_id → d
 
 Oczekiwany wynik: `{1: 30, 2: 110}`.
 
-**2c.** `defaultdict` **— suma po kluczu**
+**3c.** `defaultdict` **— suma po kluczu**
 
-Sumowanie to nie zadanie na comprehension. Napisz `total_login_duration(logs: list[dict]) -> dict[int, int]` z `collections.defaultdict(int)` i pętlą `for`:
+Sumowanie to nie zadanie na comprehension. Napisz `total_login_duration(logs: list[dict]) -> dict[int, int]` z `collections.defaultdict(int)` i pętlą `for` (jak we wprowadzeniu, plus `+=`):
 
 - `totals = defaultdict(int)` — brakujący klucz to `0`
 - dla każdego loginu: `totals[user_id] += duration`
 
-Możesz najpierw wziąć wynik z 2a albo filtrować w pętli. Zwróć `dict(totals)` albo sam `defaultdict`.
+Możesz najpierw wziąć wynik z 3a albo filtrować w pętli. Zwróć `dict(totals)` albo sam `defaultdict`.
 
 Oczekiwany wynik: `{1: 150, 2: 110}`.
 
