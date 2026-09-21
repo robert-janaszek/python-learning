@@ -1,0 +1,52 @@
+---
+description: Git commit messages — Python learning course (Conventional Commits)
+alwaysApply: true
+---
+
+# Git commit messages — Python learning course
+
+Whenever generating a git commit message, follow these rules:
+
+1. LANGUAGE & STYLE:
+   - Entire message in English.
+   - Imperative mood in the summary ("add", "fix", "complete") — never past tense.
+   - Do not capitalize the first letter after the colon.
+   - Do not end the subject line with a period.
+   - Keep the first line under 72 characters.
+
+2. FORMAT:
+   `<type>(<scope>): <short summary>`
+
+   [optional body for larger changes, separated by a blank line]
+
+3. TYPES (use only these):
+   - feat: new exercises, packages, or course work completed
+   - fix: bug fix in exercise or package code
+   - docs: documentation only (course/docs, README)
+   - chore: tooling, dependencies (pyproject.toml), meta files (.cursor/rules)
+   - refactor: meaningful restructure of exercise code (not main.py wiring)
+
+4. SCOPE:
+   Prefer the course day or area, e.g. day7, day6, docs.
+   For dependency-only changes use deps.
+   Omit scope only when the change is truly cross-cutting and no day fits.
+
+5. WHAT TO FOCUS ON:
+   - Summarize the learning topic or exercises (e.g. modules, exceptions, typing).
+   - Prefer day-level summaries over listing every file.
+   - Group related exercise work under one commit message when committing a day chunk.
+
+6. WHAT TO IGNORE / NEVER MENTION:
+   - Switching which exercise is called from main.py (commenting one day, calling another).
+   - That is temporary runner wiring, not the substance of the commit.
+   - Do not use scopes or wording from frontend stacks (components, hooks, React, etc.).
+
+Examples:
+
+```
+feat(day6): add modules, packages, and import exercises
+feat(day5): complete exception handling exercises
+docs(day1): add Python tooling intro exercises
+chore(deps): add pytest
+fix(day3): correct list index in exercise helper
+```
