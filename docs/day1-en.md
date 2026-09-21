@@ -7,12 +7,64 @@
    * Initialize the project: `uv init python-week1 && cd python-week1`
    * Add Ruff: `uv add --dev ruff`
    * Run the linter and formatter: `uv run ruff check .` and `uv run ruff format .`
+   * Run the code: `uv run python-week1` (from the `python-week1` directory). This calls `python_week1:main` from `pyproject.toml`. `uv run` uses the local `.venv`; you do not need to activate it by hand.
+   * `uv run python -m python_week1` will do nothing until the package has a `__main__.py`, or `main()` is invoked on import.
 
-2. **Coding exercise:**
-   * You have a list of dictionaries representing event logs: `[{"user_id": 1, "action": "login", "duration": 120}, ...]`.
-   * Write a function that, using a **list/dict comprehension** (no `for` loops and no `.map()` / `.filter()`):
-     * Filters only events of type `"login"`.
-     * Returns a dictionary `{user_id: total_duration}` (including the case where a user has multiple logs — try using `collections.defaultdict`).
+2. **Coding exercise — event logs:**
+
+The data is a list of **dictionaries**, not objects. Read a field by key: `log["action"]`, **not** `log.action`.
+
+Keep one list in `main()` and call three functions on it (`print` each). Do not use `.map()` / `.filter()`.
+
+```python
+logs = [
+    {"user_id": 1, "action": "login", "duration": 120},
+    {"user_id": 2, "action": "login", "duration": 110},
+    {"user_id": 1, "action": "logout", "duration": 90},
+    {"user_id": 1, "action": "login", "duration": 30},
+]
+```
+
+A `for` inside `[...]` or `{...}` is comprehension syntax — that is the point. Use a classic loop:
+
+```python
+result = []
+for x in items:
+    ...
+```
+
+**only** in exercise 2c.
+
+**2a. List comprehension — filter + map**
+
+Syntax: `[expression for item in collection if condition]`.
+
+Mini example: `[n * 2 for n in [1, 2, 3, 4] if n % 2 == 0]` → `[4, 8]`.
+
+Write `login_durations(logs: list[dict]) -> list[int]`: the `duration` values for `"login"` events only.
+
+Expected: `[120, 110, 30]`.
+
+**2b. Dict comprehension — last value wins**
+
+Syntax: `{key: value for item in collection if condition}`.
+
+Mini example: `{n: n * n for n in [1, 2, 3]}` → `{1: 1, 2: 4, 3: 9}`.
+
+Write `last_login_duration(logs: list[dict]) -> dict[int, int]`: `user_id → duration` of the **last** login. A repeated key **overwrites** the previous value — that is the lesson. A comprehension does **not** sum.
+
+Expected: `{1: 30, 2: 110}`.
+
+**2c. `defaultdict` — sum by key**
+
+Summing is not a comprehension job. Write `total_login_duration(logs: list[dict]) -> dict[int, int]` with `collections.defaultdict(int)` and a `for` loop:
+
+* `totals = defaultdict(int)` — a missing key is `0`
+* for each login: `totals[user_id] += duration`
+
+You can reuse 2a or filter in the loop. Return `dict(totals)` or the `defaultdict` itself.
+
+Expected: `{1: 150, 2: 110}`.
 
 ---
 
