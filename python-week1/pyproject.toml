@@ -10,7 +10,7 @@ requires-python = ">=3.14"
 dependencies = []
 
 [project.scripts]
-python-week1 = "python_week1:main"
+python-week1 = "python_week1.__main__:main"
 
 [build-system]
 requires = ["uv_build>=0.12.17,<0.13.0"]

@@ -1,27 +1,308 @@
-## Dzień 1: Tooling i czysta składnia (`uv`, `Ruff`, `for`, comprehensions)
+## Dzień 1: Tooling i semantyka Pythona (`uv`, `Ruff`, `dict`, `for`, comprehensions)
 
-**Cel:** Konfiguracja środowiska w 2 minuty oraz pętla `for`, słownik i idiom operacji na kolekcjach.
+**Cel:** Postawić projekt i umieć z głowy złożyć funkcje, pętle, słowniki i comprehensions — bez szukania składni w necie.
 
-1. **Konfiguracja środowiska:**
+Tekst poniżej to ściąga językowa na **dziś**. Zadania są na końcu dnia. Przykłady w notatkach są celowo o liczbach i imionach, nie o logach — logi liczysz sam.
+
+---
+
+### 1. Konfiguracja środowiska
 
 - Zainstaluj `uv` (jeśli jeszcze nie masz): `curl -LsSf https://astral.sh/uv/install.sh | sh`
 - Inicjalizacja projektu: `uv init python-week1 && cd python-week1`
 - Dodaj Ruff: `uv add --dev ruff`
-- Uruchom linter i formatter: `uv run ruff check .` oraz `uv run ruff format .`
+- Linter i formatter: `uv run ruff check .` oraz `uv run ruff format .`
 - Uruchom kod: `uv run python-week1` (z katalogu `python-week1`). To woła `python_week1:main` z `pyproject.toml`. `uv run` używa lokalnego `.venv`, nie musisz go aktywować ręcznie.
 - `uv run python -m python_week1` nic nie wykona, dopóki w pakiecie nie ma `__main__.py`, a `main()` nie jest wołane przy imporcie.
 
-2. **Wprowadzenie: słownik i pętla `for`**
+---
 
-Zdarzenie zapisujesz jako **słownik** (`dict`): pary klucz → wartość.
+### 2. Jak Python czyta plik
+
+Plik `.py` to **moduł**. Interpreter wczytuje go od góry do dołu i wykonuje każdą instrukcję.
+
+`def nazwa(...):` **definiuje** funkcję: wiąże nazwę z obiektem funkcji. Ciało `def` w tym momencie się **nie** wykonuje. Wykonanie następuje dopiero przy wywołaniu `nazwa(...)`.
+
+Dlatego w module możesz napisać `main()` na górze pliku, a `login_durations` poniżej. `uv` importuje moduł (wszystkie `def` już istnieją), **potem** woła `main()`. Gdybyś wywołał funkcję w linijce *nad* jej `def`, przy starcie dostałbyś `NameError`.
+
+Komentarz: od `#` do końca linii. Python go pomija.
+
+---
+
+### 3. Wcięcia zamiast klamer
+
+Blok (`def`, `if`, `for`) otwiera dwukropek `:`. Ciało jest **wcięte** (w tym projekcie 4 spacje). Dedent kończy blok. Nie ma `{ }`.
 
 ```python
-log = {"user_id": 1, "action": "login", "duration": 120}
+if n > 0:
+    print("dodatnie")
+print("zawsze")  # poza if, bo mniejsze wcięcie
 ```
 
-Wartość wyciągasz **kluczem w nawiasach kwadratowych**: `log["action"]` to `"login"`, `log["duration"]` to `120`. Klucz jest stringiem, takim samym jak po lewej stronie w literale.
+Mieszanie tabów i spacji psuje parser. Ruff/format to wyrównają.
 
-Kilka zdarzeń to **lista** słowników. Pętla `for` w Pythonie idzie po elementach kolekcji (tu: po kolejnych słownikach), nie po indeksach. Ciało pętli jest wcięte.
+---
+
+### 4. Nazwy i przypisanie
+
+`x = 1` nie deklaruje typu ani „pudełka”. Wiąże nazwę `x` z obiektem `1`.
+
+Kolejny `x = 2` wiąże tę samą nazwę z innym obiektem. Stary obiekt, jeśli nic na niego nie wskazuje, znika.
+
+Dwa zapisy, dwa znaczenia:
+
+- `x = x + 1` albo `x += 1` — nowe wiązanie nazwy (dla liczb).
+- `xs.append(3)` — **mutacja** istniejącej listy; nazwa `xs` nadal wskazuje ten sam obiekt.
+
+Konwencja nazw: `snake_case` (`last_login`, nie `lastLogin`). To styl, nie składnia.
+
+---
+
+### 5. Typy, których dziś używasz
+
+| Typ | Literał | Co to jest |
+| --- | --- | --- |
+| `int` | `120` | liczba całkowita |
+| `str` | `"login"` | tekst; cudzysłów `"..."` albo `'...'` |
+| `bool` | `True` / `False` | wynik porównań |
+| `list` | `[1, 2, 3]` | uporządkowany ciąg; ten sam element może się powtórzyć |
+| `dict` | `{"a": 1}` | mapowanie klucz → wartość |
+
+`==` porównuje **wartości** (`"login" == "login"` jest `True`). `=` to przypisanie, nie porównanie.
+
+Adnotacje typów (`n: int`, `def f(xs: list[int]) -> int`) są dla Ciebie i dla checkerów (dzień 7). **Runtime ich nie wymusza.** Możesz napisać `-> dict[int, int]` i zwrócić coś innego — program i tak się wykona, dopóki nie użyjesz wyniku w sposób, który wywali wyjątek.
+
+`list[dict]` znaczy: lista, której elementy są słownikami. Jakie klucze mają te słowniki, ta adnotacja **nie** opisuje.
+
+---
+
+### 6. Dwa sposoby odczytu: `[]` i `.`
+
+- `obiekt["klucz"]` — odczyt **wpisu w mapowaniu** (słownik). Klucz jest wyrażeniem, zwykle `str` albo `int`.
+- `obiekt.atrybut` — odczyt **atrybutu** obiektu (pole albo metoda zapisane na obiekcie), np. `logs.append`.
+
+Słownik trzyma pary klucz–wartość wewnątrz siebie. Dostęp do nich jest przez `[]`. Metody słownika (np. `.keys()`) są atrybutami, więc idą przez kropkę.
+
+```python
+log = {"user_id": 1, "action": "login"}
+log["action"]   # "login" — klucz
+log["user_id"]  # 1
+```
+
+Brak klucza: `log["missing"]` rzuca `KeyError`.
+
+Zapis (wstawienie albo nadpisanie):
+
+```python
+ages = {}
+ages["Ada"] = 3
+ages["Ada"] = 4   # ten sam klucz: zostaje 4, trójka znika
+```
+
+Klucz w `dict` jest unikalny. Drugie przypisanie pod ten sam klucz **zastępuje** wartość. Dlatego dict comprehension „sumuje” tylko pozornie — tak naprawdę zostawia ostatnią wartość.
+
+---
+
+### 7. Lista
+
+```python
+xs = [10, 20, 30]
+xs[0]          # 10 — indeks od zera
+xs.append(40)  # teraz [10, 20, 30, 40]
+len(xs)        # 4
+```
+
+Lista pamięta kolejność. Indeks poza zakresem: `IndexError`.
+
+---
+
+### 8. `if`
+
+```python
+if log["action"] == "login":
+    ...
+elif log["action"] == "logout":
+    ...
+else:
+    ...
+```
+
+Warunek to wyrażenie, które Python sprowadza do prawdy/fałszu. Nawiasy wokół warunku są zbędne (to nie C/JS).
+
+Dziś wystarczy `==` i ewentualnie `and` / `or` / `not`.
+
+---
+
+### 9. Pętla `for`
+
+Pythonowski `for` **nie** jest `for (i = 0; i < n; i++)`. Iteruje po **elementach** kolekcji.
+
+```python
+for n in [10, 20, 30]:
+    print(n)
+```
+
+Wypisze `10`, potem `20`, potem `30`. W każdej turze nazwa pętli (`n`) jest związana z **kolejnym elementem**, nie z indeksem.
+
+Po liście słowników:
+
+```python
+for log in logs:
+    print(log["action"], log["duration"])
+```
+
+`log` to cały słownik tej turze. Pola bierzesz przez `log["..."]`.
+
+Złożenie nowej listy pętlą (akumulator):
+
+```python
+squares = []
+for n in [1, 2, 3, 4]:
+    if n % 2 == 0:
+        squares.append(n * n)
+# squares == [4, 16]
+```
+
+`%` to reszta z dzielenia. `n % 2 == 0` znaczy „parzyste”.
+
+To jest model mentalny list comprehension: idź po kolekcji, ewentualnie pomiń wiersz, dodaj wyrażenie do wyniku.
+
+---
+
+### 10. Funkcje
+
+```python
+def double(n: int) -> int:
+    return n * 2
+
+x = double(21)  # 42
+```
+
+- `def` + nazwa + lista parametrów w `()`.
+- `return wyrażenie` kończy funkcję i oddaje wartość wywołującemu. Bez `return` funkcja zwraca `None`.
+- Parametr (`n`) to nazwa lokalna, związana z argumentem (`21`) na czas wywołania.
+- Wywołanie: `nazwa(arg1, arg2)`.
+
+Funkcja, która ma coś policzyć i pokazać, zwykle **zwraca** wynik; `print` zostawiasz w `main()`.
+
+```python
+def main() -> None:
+    xs = [1, 2, 3]
+    print(double(xs[0]))
+```
+
+`-> None` znaczy: ta funkcja nic pożytecznego nie zwraca (efekt to `print` albo mutacja).
+
+---
+
+### 11. `import`
+
+Kod z innego modułu wciągasz na górze pliku:
+
+```python
+from collections import defaultdict
+```
+
+`collections` jest w bibliotece standardowej. `defaultdict` to klasa z tego modułu. Po tym imporcie używasz nazwy `defaultdict` w pliku.
+
+---
+
+### 12. `print`
+
+`print(x)` wypisuje czytelny obraz wartości i kończy linię. Kilka argumentów rozdziela spacją: `print(a, b)`.
+
+Listy i słowniki drukują się swoją literałową postacią, np. `[120, 110]` albo `{1: 150, 2: 110}`. Tego użyjesz do sprawdzenia zadań.
+
+---
+
+### 13. List comprehension
+
+To **wyrażenie**, które buduje nową listę. Semantyka jest ta sama co pętla z `.append`, tylko w jednej linijce.
+
+```python
+[wyrażenie for element in kolekcja if warunek]
+```
+
+Kolejność ewaluacji:
+
+1. Weź kolejny `element` z `kolekcja`.
+2. Jeśli jest `if warunek` i warunek jest fałszywy — pomiń.
+3. Policz `wyrażenie` (może używać `element`).
+4. Dołącz wynik do nowej listy.
+5. Powtórz, aż kolekcja się skończy.
+
+`for` i `if` wewnątrz `[...]` należą do tej składni. To nie jest osobna instrukcja `for`.
+
+```python
+[n * 2 for n in [1, 2, 3, 4] if n % 2 == 0]
+# 1. n=1 nieparzyste → skip
+# 2. n=2 → 4
+# 3. n=3 skip
+# 4. n=4 → 8
+# wynik: [4, 8]
+```
+
+Równoważna pętla jest w §9. Dziś w zadaniach 3a/3b piszesz comprehension, nie `.map()` / `.filter()` (to metody z innych języków / z innego idiomu; tu uczymy składni Pythona).
+
+---
+
+### 14. Dict comprehension
+
+To samo, ale wynikiem jest `dict`. Po lewej klucz, po prawej wartość:
+
+```python
+{klucz: wartość for element in kolekcja if warunek}
+```
+
+```python
+{n: n * n for n in [1, 2, 3]}
+# {1: 1, 2: 4, 3: 9}
+```
+
+Jeśli ten sam klucz wyjdzie drugi raz, zostaje **późniejsza** para — dokładnie jak `d[k] = v` w pętli. Dict comprehension **nie dodaje** wartości pod kluczem. Do sumy potrzebujesz akumulatora (następna sekcja).
+
+```python
+{c: 1 for c in ["a", "b", "a"]}
+# {"a": 1, "b": 1}  — drugie "a" nadpisało pierwsze
+```
+
+---
+
+### 15. `defaultdict` i `+=`
+
+Zwykły `dict`: odczyt nieistniejącego klucza → `KeyError`. Żeby zliczać, musiałbyś za każdym razem sprawdzać, czy klucz już jest.
+
+`defaultdict(fabryka)` przy **pierwszym** odczycie brakującego klucza woła `fabryka()` i wstawia wynik.
+
+`int` jako fabryka: `int()` zwraca `0`. Stąd `defaultdict(int)` — brakujący klucz zachowuje się jak `0`.
+
+```python
+from collections import defaultdict
+
+counts = defaultdict(int)
+counts["a"] += 1
+counts["a"] += 1
+counts["b"] += 5
+# counts["a"] == 2, counts["b"] == 5
+```
+
+`counts["a"] += 1` znaczy: odczytaj obecną wartość (albo `0`), dodaj `1`, zapisz z powrotem.
+
+`defaultdict` jest podklasą `dict`. Przy `print` wygląda podobnie. Różnica: odczyt brakującego klucza **wstawia** `0`, zamiast rzucić `KeyError`. Dlatego wynik funkcji często zwracasz jako zwykły słownik:
+
+```python
+plain = dict(counts)  # kopia par klucz→wartość, typ dict
+```
+
+`dict(counts)` nie zmienia `counts`; buduje nowy, zwykły `dict`.
+
+Sumowanie „po kluczu” to pętla-instrukcja plus `+=`. Comprehension tu nie zastępuje pętli.
+
+---
+
+### 16. Zadania — logi zdarzeń
+
+Dane (jedna lista w `main()`, trzy funkcje, `print` każdej):
 
 ```python
 logs = [
@@ -30,62 +311,31 @@ logs = [
     {"user_id": 1, "action": "logout", "duration": 90},
     {"user_id": 1, "action": "login", "duration": 30},
 ]
-
-for log in logs:
-    print(log["action"], log["duration"])
 ```
 
-Warunek `if` wewnątrz pętli pomija wybrane wiersze. Nową listę składasz przez `.append`:
+Każdy element to słownik z kluczami `"user_id"` (`int`), `"action"` (`str`), `"duration"` (`int`).
 
-```python
-durations = []
-for log in logs:
-    if log["action"] == "login":
-        durations.append(log["duration"])
-```
+**3a.** `login_durations(logs: list[dict]) -> list[int]`
 
-To jest rozwinięta postać list comprehension z zadania 3a. Najpierw odpal pętlę z `print`, żeby zobaczyć, co jest w każdym `log`.
-
-3. **Zadanie kodowe — logi zdarzeń:**
-
-W `main()` trzymaj jedną listę `logs` (jak wyżej) i wołaj z niej trzy funkcje (`print` każdej). Nie używaj `.map()` / `.filter()`.
-
-Comprehension to ta sama pętla zapisana jako wyrażenie. `for` wewnątrz `[...]` albo `{...}` należy do tej składni. W zadaniu 3c zostajesz przy pętli-instrukcji, bo zbierasz sumę w zmiennej.
-
-**3a. List comprehension — filtr + mapa**
-
-Składnia: `[wyrażenie for element in kolekcja if warunek]`.
-
-Mini-przykład: `[n * 2 for n in [1, 2, 3, 4] if n % 2 == 0]` → `[4, 8]`.
-
-Napisz `login_durations(logs: list[dict]) -> list[int]`: lista `duration` tylko dla `"login"`.
+List comprehension: wartości `"duration"` z wierszy, których `"action"` to `"login"`.
 
 Oczekiwany wynik: `[120, 110, 30]`.
 
-**3b. Dict comprehension — ostatnia wartość wygrywa**
+**3b.** `last_login_duration(logs: list[dict]) -> dict[int, int]`
 
-Składnia: `{klucz: wartość for element in kolekcja if warunek}`.
-
-Mini-przykład: `{n: n * n for n in [1, 2, 3]}` → `{1: 1, 2: 4, 3: 9}`.
-
-Napisz `last_login_duration(logs: list[dict]) -> dict[int, int]`: `user_id → duration` **ostatniego** loginu. Przy powtórzonym kluczu dict **nadpisuje** poprzednią wartość — o to tu chodzi. Comprehensionem **nie** sumujesz.
+Dict comprehension: `user_id → duration` **ostatniego** loginu (kolejność listy = kolejność nadpisywania).
 
 Oczekiwany wynik: `{1: 30, 2: 110}`.
 
-**3c.** `defaultdict` **— suma po kluczu**
+**3c.** `total_login_duration(logs: list[dict]) -> dict[int, int]`
 
-Sumowanie to nie zadanie na comprehension. Napisz `total_login_duration(logs: list[dict]) -> dict[int, int]` z `collections.defaultdict(int)` i pętlą `for` (jak we wprowadzeniu, plus `+=`):
-
-- `totals = defaultdict(int)` — brakujący klucz to `0`
-- dla każdego loginu: `totals[user_id] += duration`
-
-Możesz najpierw wziąć wynik z 3a albo filtrować w pętli. Zwróć `dict(totals)` albo sam `defaultdict`.
+`defaultdict(int)` i pętla `for`. Zlicz `"duration"` tylko tam, gdzie `"action"` to `"login"`. Zwróć `dict(...)` albo sam `defaultdict`.
 
 Oczekiwany wynik: `{1: 150, 2: 110}`.
 
+Sprawdzenie: `uv run python-week1` z katalogu `python-week1`.
+
 ---
-
-
 
 ## Dzień 2: Dunder Methods, OOP i Context Manager
 
@@ -103,8 +353,6 @@ Oczekiwany wynik: `{1: 150, 2: 110}`.
 - Użycie: `with Timer("DB Query"): ...` ma automatycznie zmierzyć czas wykonania bloku kodu i wydrukować go po wyjściu z bloku.
 
 ---
-
-
 
 ## Dzień 3: Typing i Pydantic v2 (Pythonowy "Zod")
 
@@ -127,8 +375,6 @@ Oczekiwany wynik: `{1: 150, 2: 110}`.
 
 ---
 
-
-
 ## Dzień 4: Asynchroniczność w `asyncio`
 
 **Cel:** Zrozumienie jawnej pętli zdarzeń i unikanie blokowania event loopa.
@@ -141,8 +387,6 @@ Oczekiwany wynik: `{1: 150, 2: 110}`.
 - **Pułapka do przetestowania:** Dodaj do jednej z funkcji synchroniczne `time.sleep(2)` i zobacz, jak blokuje cały event loop. Napraw to, przenosząc blokujące wywołanie do osobnego wątku za pomocą `asyncio.to_thread`.
 
 ---
-
-
 
 ## Dzień 5: TDD z `pytest` i Fixtures
 
@@ -162,8 +406,6 @@ Oczekiwany wynik: `{1: 150, 2: 110}`.
 
 ---
 
-
-
 ## Dzień 6: Mini-CLI w oparciu o wszystko, co powiązałeś
 
 **Cel:** Połączenie narzędzi w spójny skrypt.
@@ -174,8 +416,6 @@ Oczekiwany wynik: `{1: 150, 2: 110}`.
 - Całość powinna być w pełni otypowana, sformatowana przez `ruff` i mieć przechodzące testy w `pytest`.
 
 ---
-
-
 
 ## Dzień 7: Code Review i Pyright Strict Mode
 
@@ -190,6 +430,4 @@ uv run ruff check .
 uv run ruff format --check .
 uv run pyright
 uv run pytest
-
 ```
-
