@@ -495,6 +495,73 @@ Nazwy metod (`non_negative`, `left_not_above_right`) wybierasz sam. Liczy się d
 
 **Cel:** Zrozumienie jawnej pętli zdarzeń i unikanie blokowania event loopa.
 
+### Wprowadzenie do `asyncio`
+
+Zwykła funkcja, gdy w niej stoisz, trzyma wątek do `return`. Reszta programu czeka. `async def` definiuje **korutynę**: funkcję, która umie się zatrzymać na `await` i oddać sterowanie pętli zdarzeń. Pętla w tym czasie prowadzi inne korutyny, a potem wraca.
+
+Sam `async def` nic nie uruchamia. Korutynę startuje `asyncio.run` — raz, na szczycie programu. W środku korutyny kolejne wołasz przez `await`.
+
+```python
+import asyncio
+
+
+async def boil(item: str) -> str:
+    await asyncio.sleep(0.1)
+    return item
+
+
+async def cook() -> None:
+    ready = await boil("water")
+    print(ready)
+
+
+asyncio.run(cook())
+```
+
+`asyncio.sleep` oddaje pętlę na podany czas. `time.sleep` trzyma wątek: pętla stoi, dopóki sen się nie skończy, i żadna inna korutyna w tym czasie nie ruszy.
+
+`asyncio.gather` startuje kilka korutyn i czeka, aż wszystkie skończą. Wynik to lista w tej samej kolejności co argumenty.
+
+```python
+async def cook() -> None:
+    ready = await asyncio.gather(boil("water"), boil("pasta"), boil("sauce"))
+    print(ready)  # ["water", "pasta", "sauce"]
+```
+
+`asyncio.Semaphore(n)` trzyma licznik wejść. `async with` zajmuje jedno wejście na czas bloku i oddaje je na wyjściu. `gather` może wystartować wiele korutyn, a semafor pilnuje, żeby w bloku było ich naraz co najwyżej `n`.
+
+```python
+async def cook() -> None:
+    burners = asyncio.Semaphore(2)
+
+    async def one(item: str) -> str:
+        async with burners:
+            return await boil(item)
+
+    ready = await asyncio.gather(*(one(item) for item in ["water", "pasta", "sauce"]))
+    print(ready)
+```
+
+Semafor twórz wewnątrz korutyny, którą odpala `asyncio.run`. Obiekt stworzony przy imporcie modułu może zostać przywiązany do innej pętli.
+
+Gdy musisz wołać funkcję, która blokuje wątek (`time.sleep`, zwykłe I/O bez `await`), przenieś ją poza pętlę. `asyncio.to_thread` uruchamia ją w wątku i zwraca awaitable: pętla w tym czasie prowadzi resztę.
+
+```python
+import time
+
+
+def slow_label(item: str) -> str:
+    time.sleep(1)
+    return item.upper()
+
+
+async def cook() -> None:
+    label = await asyncio.to_thread(slow_label, "water")
+    print(label)
+```
+
+Argumenty funkcji idą po niej: `to_thread(slow_label, "water")` znaczy `slow_label("water")` w wątku.
+
 1. **Zadanie kodowe – Async Fetcher & Rate Limiting:**
 
 - Napisz asynchroniczną funkcję `fetch_metrics(service_id: int) -> dict`, która symuluje zapytanie HTTP (`await asyncio.sleep(0.5)`).
@@ -507,6 +574,61 @@ Nazwy metod (`non_negative`, `left_not_above_right`) wybierasz sam. Liczy się d
 ## Dzień 5: TDD z `pytest` i Fixtures
 
 **Cel:** Pisanie idiomaticznych testów z wykorzystaniem fixture'ów i parametryzacji.
+
+### Wprowadzenie do `pytest`
+
+Test to funkcja `test_...` w pliku `test_*.py`. `pytest` sam je zbiera. Uruchomienie z katalogu `python-week1`: `uv run pytest`. Asercja to zwykłe `assert`. Fałsz kończy test i pokazuje wartości po obu stronach porównania.
+
+Fixture przygotowuje obiekt przed testem. `@pytest.fixture` stoi nad `def`, tak jak dekoratory z Dnia 3. Test dostaje wynik fixture'a przez argument o tej samej nazwie. Domyślnie fixture wykonuje się od nowa przed każdym testem, który o niego prosi.
+
+```python
+import pytest
+
+
+class Stack:
+    def __init__(self) -> None:
+        self.items: list[int] = []
+
+    def push(self, n: int) -> None:
+        if n < 0:
+            raise ValueError("negative")
+        self.items.append(n)
+
+
+@pytest.fixture
+def stack() -> Stack:
+    return Stack()
+
+
+def test_push(stack: Stack) -> None:
+    stack.push(1)
+    assert stack.items == [1]
+```
+
+`@pytest.mark.parametrize` odpala ten sam test raz na każdy element listy. Nazwa w napisie musi pokrywać się z argumentem funkcji.
+
+```python
+@pytest.mark.parametrize("n", [-1, -5])
+def test_rejects_negative(stack: Stack, n: int) -> None:
+    with pytest.raises(ValueError):
+        stack.push(n)
+```
+
+`pytest.raises` jest context managerem: wyjątek w bloku `with` zalicza test. Brak wyjątku, albo inny typ, test oblewa.
+
+Test asynchroniczny to `async def`. Sam `pytest` go nie uruchomi. Po `pytest-asyncio` oznaczasz go `@pytest.mark.asyncio`, a w środku używasz `await` jak w Dniu 4.
+
+```python
+import asyncio
+
+import pytest
+
+
+@pytest.mark.asyncio
+async def test_pause() -> None:
+    await asyncio.sleep(0)
+    assert True
+```
 
 1. **Przygotowanie:**
 
@@ -526,6 +648,43 @@ Nazwy metod (`non_negative`, `left_not_above_right`) wybierasz sam. Liczy się d
 
 **Cel:** Połączenie narzędzi w spójny skrypt.
 
+### Wprowadzenie do CLI, plików i JSON
+
+`uv run python-week1` woła `main()`. Dodatkowe słowa po nazwie polecenia lądują w `sys.argv`. `argparse` je czyta i zgłasza błąd, gdy brakuje wymaganego argumentu.
+
+```python
+import argparse
+from pathlib import Path
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("path")
+    args = parser.parse_args()
+    text = Path(args.path).read_text(encoding="utf-8")
+    print(text)
+```
+
+Wywołanie: `uv run python-week1 notes.txt`. `Path.read_text` zwraca całą treść pliku jako `str`. `Path.write_text` nadpisuje plik podaną treścią.
+
+`json.loads` zamienia tekst JSON na obiekty Pythona. Tablica JSON staje się `list`, obiekt JSON staje się `dict`. `json.dumps` idzie w drugą stronę: z obiektu Pythona robi tekst.
+
+```python
+import json
+from pathlib import Path
+
+raw = Path("nums.json").read_text(encoding="utf-8")
+rows = json.loads(raw)  # np. [{"n": 1}, {"n": 2}]
+Path("summary.json").write_text(
+    json.dumps({"count": len(rows)}),
+    encoding="utf-8",
+)
+```
+
+Jeden obiekt JSON, który ma pasować do modelu Pydantic, podajesz jako tekst do `model_validate_json`. Lista takich obiektów: najpierw `json.loads`, potem `model_validate` na każdym słowniku. Zły wpis rzuca `ValidationError`, tak jak w Dniu 3.
+
+`main()` jest zwykłą funkcją. Korutyny z Dnia 4 startujesz z niej przez `asyncio.run(...)`. Każdy nowy `def` ma adnotacje argumentów i typu zwracanego — Dzień 7 włączy tryb, który ich wymaga.
+
 1. **Zadanie:**
 
 - Stwórz narzędzie CLI, które przyjmuje ścieżkę do pliku JSON z listą użytkowników, waliduje każdy wpis przez Pydantic, asynchronicznie "przetwarza" ich (simulated I/O) i zapisuje zagregowane statystyki do nowego pliku.
@@ -536,6 +695,41 @@ Nazwy metod (`non_negative`, `left_not_above_right`) wybierasz sam. Liczy się d
 ## Dzień 7: Code Review i Pyright Strict Mode
 
 **Cel:** Weryfikacja jakości kodu według standardów produkcyjnych.
+
+### Wprowadzenie do trybu strict
+
+Pyright w trybie strict czyta adnotacje i odrzuca miejsca, w których typ może być czymkolwiek. W `python-week1/pyproject.toml`:
+
+```toml
+[tool.pyright]
+typeCheckingMode = "strict"
+```
+
+Albo, jeśli używasz Mypy:
+
+```toml
+[tool.mypy]
+strict = true
+```
+
+Funkcja, która czasem nic nie znajduje, zwraca `str | None`. Samo `-> str` strict odrzuci, bo `None` nie jest `str`. Zanim użyjesz wartości `str | None` jak stringa, sprawdzasz `None`.
+
+```python
+def first(items: list[str]) -> str | None:
+    if not items:
+        return None
+    return items[0]
+
+
+def shout(name: str | None) -> str:
+    if name is None:
+        return ""
+    return name.upper()
+```
+
+`Any` wyłącza sprawdzanie w tym miejscu. Strict nadal pozwoli je wpisać, a zadanie każe takie miejsca usunąć: argument, wynik i atrybut dostają konkretny typ.
+
+Cztery polecenia z katalogu `python-week1` sprawdzają co innego. `ruff check` szuka błędów stylu i oczywistych bugów. `ruff format --check` porównuje układ pliku z formaterem i nic nie zmienia. `pyright` sprawdza typy. `pytest` odpala testy.
 
 1. Włącz w `pyproject.toml` ścisłą kontrolę typów dla Pyright (`typeCheckingMode = "strict"`) lub Mypy (`strict = true`).
 2. Przejrzyj kod z Dnia 6 i wyeliminuj wszystkie ostrzeżenia typowania (brakujące `None`, typy `Any`, niezgodności z `Optional`).

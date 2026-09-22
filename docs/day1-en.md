@@ -491,6 +491,73 @@ You choose the method names (`non_negative`, `left_not_above_right`). What matte
 
 **Goal:** Understand the explicit event loop and avoid blocking it.
 
+### Introduction to `asyncio`
+
+An ordinary function holds the thread until `return`. The rest of the program waits. `async def` defines a **coroutine**: a function that can pause on `await` and hand control to the event loop. The loop runs other coroutines in that time, then comes back.
+
+`async def` by itself starts nothing. `asyncio.run` starts a coroutine — once, at the top of the program. Inside a coroutine you call the next one with `await`.
+
+```python
+import asyncio
+
+
+async def boil(item: str) -> str:
+    await asyncio.sleep(0.1)
+    return item
+
+
+async def cook() -> None:
+    ready = await boil("water")
+    print(ready)
+
+
+asyncio.run(cook())
+```
+
+`asyncio.sleep` gives the loop back for the given time. `time.sleep` holds the thread: the loop stays still until the sleep finishes, and no other coroutine moves in that time.
+
+`asyncio.gather` starts several coroutines and waits until all of them finish. The result is a list in the same order as the arguments.
+
+```python
+async def cook() -> None:
+    ready = await asyncio.gather(boil("water"), boil("pasta"), boil("sauce"))
+    print(ready)  # ["water", "pasta", "sauce"]
+```
+
+`asyncio.Semaphore(n)` holds a count of entries. `async with` takes one entry for the duration of the block and gives it back on exit. `gather` can start many coroutines, and the semaphore keeps at most `n` of them inside the block at once.
+
+```python
+async def cook() -> None:
+    burners = asyncio.Semaphore(2)
+
+    async def one(item: str) -> str:
+        async with burners:
+            return await boil(item)
+
+    ready = await asyncio.gather(*(one(item) for item in ["water", "pasta", "sauce"]))
+    print(ready)
+```
+
+Create the semaphore inside the coroutine that `asyncio.run` starts. An object created while the module is imported can end up bound to a different loop.
+
+When you have to call a function that holds the thread (`time.sleep`, ordinary I/O with no `await`), move it off the loop. `asyncio.to_thread` runs it in a thread and returns an awaitable: the loop runs the rest in the meantime.
+
+```python
+import time
+
+
+def slow_label(item: str) -> str:
+    time.sleep(1)
+    return item.upper()
+
+
+async def cook() -> None:
+    label = await asyncio.to_thread(slow_label, "water")
+    print(label)
+```
+
+The function’s arguments follow it: `to_thread(slow_label, "water")` means `slow_label("water")` in the thread.
+
 1. **Coding exercise — async fetcher & rate limiting:**
    * Write an async function `fetch_metrics(service_id: int) -> dict` that simulates an HTTP request (`await asyncio.sleep(0.5)`).
    * Fetch data concurrently for 20 services (`service_id` from 1 to 20) using `asyncio.gather`.
@@ -502,6 +569,61 @@ You choose the method names (`non_negative`, `left_not_above_right`). What matte
 ## Day 5: TDD with `pytest` and fixtures
 
 **Goal:** Write idiomatic tests using fixtures and parametrization.
+
+### Introduction to `pytest`
+
+A test is a function named `test_...` in a file named `test_*.py`. `pytest` collects them on its own. Run it from the `python-week1` directory: `uv run pytest`. An assertion is a plain `assert`. A false result fails the test and shows the values on both sides of the comparison.
+
+A fixture prepares an object before the test. `@pytest.fixture` sits above a `def`, the same way as the decorators from Day 3. The test receives the fixture’s result through an argument of the same name. By default the fixture runs again before every test that asks for it.
+
+```python
+import pytest
+
+
+class Stack:
+    def __init__(self) -> None:
+        self.items: list[int] = []
+
+    def push(self, n: int) -> None:
+        if n < 0:
+            raise ValueError("negative")
+        self.items.append(n)
+
+
+@pytest.fixture
+def stack() -> Stack:
+    return Stack()
+
+
+def test_push(stack: Stack) -> None:
+    stack.push(1)
+    assert stack.items == [1]
+```
+
+`@pytest.mark.parametrize` runs the same test once per list element. The name in the string has to match the function argument.
+
+```python
+@pytest.mark.parametrize("n", [-1, -5])
+def test_rejects_negative(stack: Stack, n: int) -> None:
+    with pytest.raises(ValueError):
+        stack.push(n)
+```
+
+`pytest.raises` is a context manager: an exception inside the `with` block passes the test. No exception, or a different type, fails it.
+
+An async test is an `async def`. `pytest` alone will not run it. After `pytest-asyncio`, mark it with `@pytest.mark.asyncio` and use `await` inside, as in Day 4.
+
+```python
+import asyncio
+
+import pytest
+
+
+@pytest.mark.asyncio
+async def test_pause() -> None:
+    await asyncio.sleep(0)
+    assert True
+```
 
 1. **Setup:**
    * Add pytest: `uv add --dev pytest pytest-asyncio`
@@ -519,6 +641,43 @@ You choose the method names (`non_negative`, `left_not_above_right`). What matte
 
 **Goal:** Combine the tools into one coherent script.
 
+### Introduction to the CLI, files, and JSON
+
+`uv run python-week1` calls `main()`. Extra words after the command land in `sys.argv`. `argparse` reads them and reports an error when a required argument is missing.
+
+```python
+import argparse
+from pathlib import Path
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("path")
+    args = parser.parse_args()
+    text = Path(args.path).read_text(encoding="utf-8")
+    print(text)
+```
+
+Invocation: `uv run python-week1 notes.txt`. `Path.read_text` returns the whole file as a `str`. `Path.write_text` replaces the file with the given text.
+
+`json.loads` turns JSON text into Python objects. A JSON array becomes a `list`, a JSON object becomes a `dict`. `json.dumps` goes the other way: from a Python object to text.
+
+```python
+import json
+from pathlib import Path
+
+raw = Path("nums.json").read_text(encoding="utf-8")
+rows = json.loads(raw)  # e.g. [{"n": 1}, {"n": 2}]
+Path("summary.json").write_text(
+    json.dumps({"count": len(rows)}),
+    encoding="utf-8",
+)
+```
+
+A single JSON object that should match a Pydantic model goes in as text to `model_validate_json`. A list of such objects: `json.loads` first, then `model_validate` on each dictionary. A bad entry raises `ValidationError`, as in Day 3.
+
+`main()` is an ordinary function. You start Day 4 coroutines from it with `asyncio.run(...)`. Every new `def` has argument annotations and a return type — Day 7 turns on a mode that requires them.
+
 1. **Exercise:**
    * Create a CLI that takes a path to a JSON file with a list of users, validates each entry with Pydantic, “processes” them asynchronously (simulated I/O), and writes aggregated stats to a new file.
    * Everything should be fully typed, formatted by `ruff`, and covered by passing `pytest` tests.
@@ -528,6 +687,41 @@ You choose the method names (`non_negative`, `left_not_above_right`). What matte
 ## Day 7: Code review and Pyright strict mode
 
 **Goal:** Verify code quality against production standards.
+
+### Introduction to strict mode
+
+Pyright in strict mode reads annotations and rejects places where the type could be anything. In `python-week1/pyproject.toml`:
+
+```toml
+[tool.pyright]
+typeCheckingMode = "strict"
+```
+
+Or, if you use Mypy:
+
+```toml
+[tool.mypy]
+strict = true
+```
+
+A function that sometimes finds nothing returns `str | None`. A bare `-> str` fails strict mode, because `None` is not a `str`. Before you use a `str | None` value as a string, you check for `None`.
+
+```python
+def first(items: list[str]) -> str | None:
+    if not items:
+        return None
+    return items[0]
+
+
+def shout(name: str | None) -> str:
+    if name is None:
+        return ""
+    return name.upper()
+```
+
+`Any` turns checking off at that spot. Strict mode still lets you write it, and the exercise tells you to remove those spots: the argument, the result, and the attribute get a concrete type.
+
+The four commands from the `python-week1` directory check different things. `ruff check` looks for style mistakes and obvious bugs. `ruff format --check` compares the file layout with the formatter and changes nothing. `pyright` checks types. `pytest` runs the tests.
 
 1. Enable strict type checking in `pyproject.toml` for Pyright (`typeCheckingMode = "strict"`) or Mypy (`strict = true`).
 2. Review the Day 6 code and eliminate all typing warnings (missing `None`, `Any` types, `Optional` mismatches).
