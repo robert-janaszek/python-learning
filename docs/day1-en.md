@@ -356,6 +356,122 @@ Check: `uv run python-week1` from the `python-week1` directory.
 
 **Goal:** Data models at the I/O boundary with full validation and static typing.
 
+### Introduction to decorators
+
+In Python a function is an object. You can pass it into another function the same way you pass a number or a string.
+
+A decorator is a function that takes a function and returns a function. Usually it returns a new function: that one calls the original and adds its own behavior. The `@` spelling is shorthand. Python takes the function from the `def` on the next line and passes it through the decorator immediately.
+
+```python
+def twice(fn):
+    def wrapped(n: int) -> int:
+        return fn(n) * 2
+
+    return wrapped
+
+
+@twice
+def add_one(n: int) -> int:
+    return n + 1
+
+
+add_one(3)  # 8
+```
+
+`@twice` sits on the line above `def`. After the definition, the name `add_one` already refers to the result of `twice(...)`, which is `wrapped`. Calling `add_one(3)` enters `wrapped`: it calls the original (`3 + 1`) and multiplies the result by 2.
+
+The same thing without `@`:
+
+```python
+def add_one(n: int) -> int:
+    return n + 1
+
+
+add_one = twice(add_one)
+```
+
+`@` runs once, at definition time, while the module is loading. Later calls go through the wrapped function.
+
+A decorator can be a factory. It takes arguments itself and returns the real decorator. The parentheses are then part of the spelling: you call the factory first, and whatever it returns wraps the function.
+
+```python
+def tag(label: str):
+    def decorator(fn):
+        fn.label = label
+        return fn
+
+    return decorator
+
+
+@tag("points")
+def check(value: int) -> int:
+    return value
+
+
+check.label  # "points"
+```
+
+`@tag("points")` means `check = tag("points")(check)`.
+
+Several decorators stack, one above another. Python applies them from the bottom: the one closest to `def` wraps first.
+
+```python
+@outer
+@inner
+def f():
+    ...
+```
+
+is `f = outer(inner(f))`.
+
+`@field_validator(...)` and `@model_validator(...)` in the exercise below are decorators written in Pydantic. You configure them in the parentheses, and they wrap the method in the `def` underneath — the same mechanism as `twice` and `tag`.
+
+### Introduction to validation in Pydantic
+
+A model is a class that inherits from `BaseModel`. Fields stay annotations. Validation is a method under a decorator. Pydantic calls it when you build an object from data.
+
+Each of these decorators gets its own `def`. `@field_validator` and `@model_validator` run at different times and receive different arguments.
+
+**One field.** `@field_validator("name")` wraps a method that receives that field’s value. In v2 it is a `@classmethod`: the first argument is the class (`cls`), the second is the value. Return the value that should stay on the field. Reject a bad value with `raise ValueError("...")`.
+
+```python
+from pydantic import BaseModel, field_validator
+
+
+class Score(BaseModel):
+    points: int
+
+    @field_validator("points")
+    @classmethod
+    def non_negative(cls, value: int) -> int:
+        if value < 0:
+            raise ValueError("points must be >= 0")
+        return value
+```
+
+`Score(points=-1)` is never created: Pydantic turns the `ValueError` into a `ValidationError`. `Score(points=3)` succeeds because the method returned `3`.
+
+**Several fields at once.** `@model_validator(mode="after")` wraps an instance method. Pydantic calls it once the fields are already set. You read them through `self` and return `self`. A rule that combines fields also raises `ValueError`.
+
+```python
+from typing import Self
+
+from pydantic import BaseModel, model_validator
+
+
+class Pair(BaseModel):
+    left: int
+    right: int
+
+    @model_validator(mode="after")
+    def left_not_above_right(self) -> Self:
+        if self.left > self.right:
+            raise ValueError("left must be <= right")
+        return self
+```
+
+You choose the method names (`non_negative`, `left_not_above_right`). What matters is the decorator, the arguments, and whether you return a value or raise `ValueError`. You write the `UserPayload` rules separately, on this same shape.
+
 1. **Setup:**
    * Add Pydantic and Pyright/Mypy: `uv add pydantic` and `uv add --dev pyright`
 

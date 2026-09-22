@@ -358,6 +358,122 @@ Sprawdzenie: `uv run python-week1` z katalogu `python-week1`.
 
 **Cel:** Modele danych na granicy I/O z pełną walidacją i statycznym typowaniem.
 
+### Wprowadzenie do dekoratorów
+
+W Pythonie funkcja jest obiektem. Możesz przekazać ją do innej funkcji tak samo jak liczbę albo string.
+
+Dekorator to funkcja, która dostaje funkcję i zwraca funkcję. Zwykle zwraca nową funkcję: ta woła oryginał i dokłada własne zachowanie. Zapis `@` jest skrótem. Python bierze funkcję z `def` w linii pod spodem i od razu przepuszcza ją przez dekorator.
+
+```python
+def twice(fn):
+    def wrapped(n: int) -> int:
+        return fn(n) * 2
+
+    return wrapped
+
+
+@twice
+def add_one(n: int) -> int:
+    return n + 1
+
+
+add_one(3)  # 8
+```
+
+`@twice` stoi w linii nad `def`. Po definicji nazwa `add_one` wskazuje już wynik `twice(...)`, czyli `wrapped`. Wywołanie `add_one(3)` wchodzi w `wrapped`: ta woła oryginał (`3 + 1`) i mnoży wynik przez 2.
+
+To samo bez `@`:
+
+```python
+def add_one(n: int) -> int:
+    return n + 1
+
+
+add_one = twice(add_one)
+```
+
+`@` wykonuje się raz, w momencie definicji, przy wczytywaniu modułu. Późniejsze wywołania idą już w owiniętą funkcję.
+
+Dekorator bywa fabryką. Sam przyjmuje argumenty i zwraca właściwy dekorator. Nawiasy są wtedy częścią zapisu: najpierw wołasz fabrykę, a to, co zwróci, owija funkcję.
+
+```python
+def tag(label: str):
+    def decorator(fn):
+        fn.label = label
+        return fn
+
+    return decorator
+
+
+@tag("points")
+def check(value: int) -> int:
+    return value
+
+
+check.label  # "points"
+```
+
+`@tag("points")` znaczy `check = tag("points")(check)`.
+
+Kilka dekoratorów układa się jeden nad drugim. Python stosuje je od dołu: najbliższy `def` owija pierwszy.
+
+```python
+@outer
+@inner
+def f():
+    ...
+```
+
+to `f = outer(inner(f))`.
+
+`@field_validator(...)` i `@model_validator(...)` z zadania poniżej to dekoratory napisane w Pydantic. Konfigurujesz je w nawiasie, a owijają metodę z `def` pod spodem — tym samym mechanizmem co `twice` i `tag`.
+
+### Wprowadzenie do walidacji w Pydantic
+
+Model to klasa dziedzicząca po `BaseModel`. Pola zostają adnotacjami. Walidacja to metoda pod dekoratorem. Pydantic woła ją sam, kiedy budujesz obiekt z danych.
+
+Każdy z tych dekoratorów dostaje własny `def`. `@field_validator` i `@model_validator` uruchamiają się w innym momencie i dostają inne argumenty.
+
+**Jedno pole.** `@field_validator("nazwa")` owija metodę, która dostaje wartość tego pola. W v2 jest to `@classmethod`: pierwszy argument to klasa (`cls`), drugi to wartość. Zwracasz wartość, która ma zostać w polu. Złą wartość odrzucasz przez `raise ValueError("...")`.
+
+```python
+from pydantic import BaseModel, field_validator
+
+
+class Score(BaseModel):
+    points: int
+
+    @field_validator("points")
+    @classmethod
+    def non_negative(cls, value: int) -> int:
+        if value < 0:
+            raise ValueError("points must be >= 0")
+        return value
+```
+
+`Score(points=-1)` nie powstanie: Pydantic zamienia `ValueError` na `ValidationError`. `Score(points=3)` przechodzi, bo metoda zwróciła `3`.
+
+**Kilka pól naraz.** `@model_validator(mode="after")` owija metodę instancji. Pydantic woła ją, gdy pola są już ustawione. Czytasz je przez `self` i zwracasz `self`. Reguła, która łączy pola, też rzuca `ValueError`.
+
+```python
+from typing import Self
+
+from pydantic import BaseModel, model_validator
+
+
+class Pair(BaseModel):
+    left: int
+    right: int
+
+    @model_validator(mode="after")
+    def left_not_above_right(self) -> Self:
+        if self.left > self.right:
+            raise ValueError("left must be <= right")
+        return self
+```
+
+Nazwy metod (`non_negative`, `left_not_above_right`) wybierasz sam. Liczy się dekorator, argumenty i to, czy zwracasz wartość, czy rzucasz `ValueError`. Reguły dla `UserPayload` piszesz osobno, na tym samym kształcie.
+
 1. **Przygotowanie:**
 
 - Dodaj Pydantic i Pyright/Mypy: `uv add pydantic` oraz `uv add --dev pyright`
