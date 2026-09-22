@@ -1,7 +1,9 @@
 from collections import defaultdict
 import time
+from pydantic import ValidationError
 from python_week1.rate_limiter import RateLimiter
 from python_week1.timer import Timer
+from python_week1.user_payload import UserPayload
 
 def main() -> None:
     logs = [
@@ -31,6 +33,31 @@ def main() -> None:
     with Timer("RateLimiter"):
         time.sleep(0.1)
 
+    try:
+        UserPayload(email="me@me.com", roles=[""])
+    except ValidationError as err:
+        print("user payload creation error occurred")
+        print(err)
+
+    try:
+        UserPayload(email="me@me.com", roles=[])
+    except ValidationError as err:
+        print("user payload creation error occurred")
+        print(err)
+
+    try:
+        UserPayload.model_validate_json('{ "id": 1, "email": "me@company.com" }')
+    except ValidationError as err:
+        print("json validation failed")
+        print(err)
+
+    try:
+        UserPayload.model_validate_json('{ "email": "me@company.com", "roles": ["admin"] }')
+    except ValidationError as err:
+        print("json validation failed")
+        print(err)
+    else:
+        print("Payload is correct")
 
 
 def login_durations(logs: list[dict]) -> list[int]:
