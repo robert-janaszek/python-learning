@@ -1,6 +1,8 @@
+import asyncio
 from collections import defaultdict
 import time
 from pydantic import ValidationError
+from python_week1.fetch_metrics import fetch_all
 from python_week1.rate_limiter import RateLimiter
 from python_week1.timer import Timer
 from python_week1.user_payload import UserPayload
@@ -58,6 +60,8 @@ def main() -> None:
         print(err)
     else:
         print("Payload is correct")
+    
+    asyncio.run(fetch_all())
 
 
 def login_durations(logs: list[dict]) -> list[int]:
