@@ -1,5 +1,5 @@
-from collections import defaultdict
 import time
+from collections import defaultdict
 
 
 class RateLimiter:
@@ -16,11 +16,17 @@ class RateLimiter:
         if len(non_expired) >= self.max_requests:
             self.hits[user_id] = non_expired
             return False
-        
+
         non_expired.append(now)
         self.hits[user_id] = non_expired
 
         return True
 
     def __repr__(self) -> str:
-        return "RateLimiter(max_requests=" + str(self.max_requests) + ", window=" + str(self.window_seconds) + ")"
+        return (
+            "RateLimiter(max_requests="
+            + str(self.max_requests)
+            + ", window="
+            + str(self.window_seconds)
+            + ")"
+        )

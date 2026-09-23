@@ -1,6 +1,7 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Literal, Self
 from uuid import UUID, uuid4
+
 from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 
 
@@ -8,8 +9,8 @@ class UserPayload(BaseModel):
     id: UUID = Field(default_factory=uuid4)
     email: EmailStr
     roles: list[Literal["admin", "user", "guest"]]
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+
     @field_validator("roles")
     @classmethod
     def validate_role(cls, value):

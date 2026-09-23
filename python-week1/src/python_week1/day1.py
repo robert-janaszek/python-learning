@@ -1,11 +1,14 @@
 import asyncio
-from collections import defaultdict
 import time
+from collections import defaultdict
+
 from pydantic import ValidationError
+
 from python_week1.fetch_metrics import fetch_all
 from python_week1.rate_limiter import RateLimiter
 from python_week1.timer import Timer
 from python_week1.user_payload import UserPayload
+
 
 def Day1() -> None:
     logs = [
@@ -31,7 +34,6 @@ def Day1() -> None:
     allowed = limiter("123")
     print(allowed)
 
-
     with Timer("RateLimiter"):
         time.sleep(0.1)
 
@@ -54,27 +56,31 @@ def Day1() -> None:
         print(err)
 
     try:
-        UserPayload.model_validate_json('{ "email": "me@company.com", "roles": ["admin"] }')
+        UserPayload.model_validate_json(
+            '{ "email": "me@company.com", "roles": ["admin"] }'
+        )
     except ValidationError as err:
         print("json validation failed")
         print(err)
     else:
         print("Payload is correct")
-    
+
     asyncio.run(fetch_all())
 
 
 def login_durations(logs: list[dict]) -> list[int]:
     return [l["duration"] for l in logs if l["action"] == "login"]
 
+
 def last_login_duration(logs: list[dict]) -> dict[int, int]:
-    return { l["user_id"]: l["duration"] for l in logs if l["action"] == "login"}
+    return {l["user_id"]: l["duration"] for l in logs if l["action"] == "login"}
+
 
 def total_login_duration(logs: list[dict]) -> dict[int, int]:
     totals = defaultdict(int)
-    
+
     for log in logs:
         if log["action"] == "login":
             totals[log["user_id"]] += log["duration"]
-    
+
     return dict(totals)

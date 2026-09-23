@@ -1,4 +1,5 @@
 import pytest
+
 from python_week1.user_service import UserService
 
 
@@ -6,7 +7,17 @@ from python_week1.user_service import UserService
 def user_service() -> UserService:
     return UserService()
 
-@pytest.mark.parametrize("email, ok", [("valid@company.com", True), ("v@c.c", True), ("@company.com", False), ("v@", False), ("@", False)])
+
+@pytest.mark.parametrize(
+    "email, ok",
+    [
+        ("valid@company.com", True),
+        ("v@c.c", True),
+        ("@company.com", False),
+        ("v@", False),
+        ("@", False),
+    ],
+)
 def test_validate_emails(user_service: UserService, email: str, ok: bool) -> None:
     if ok:
         user_service.validate_email(email)
