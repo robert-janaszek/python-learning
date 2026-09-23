@@ -629,11 +629,19 @@ async def test_pause() -> None:
    * Add pytest: `uv add --dev pytest pytest-asyncio`
 
 2. **Coding exercise:**
-   * Build a simple class-based `UserService` with an in-memory cache (dictionary).
-   * Write a `pytest` suite:
-     * Use `@pytest.fixture` to provide a fresh `UserService` instance before each test.
-     * Use `@pytest.mark.parametrize` to test email validation on 5 different valid and invalid strings in a single test.
-     * Use `pytest.raises(ValueError)` to assert thrown exceptions.
+
+`UserService` remembers users in a dictionary on the instance. The key is the email. A second lookup of the same address returns the stored entry. A fixture that builds a clean `UserService` starts every test with an empty dictionary: a registration in one test does not leave a user behind for the next one.
+
+   * Build a `UserService` class:
+     * In `__init__`, create an empty dictionary `self._users: dict[str, dict[str, str]]`.
+     * `validate_email(self, email: str) -> None` — an address is valid when it contains exactly one `@` and both sides of it are non-empty. A valid address returns without error. Anything else raises `ValueError`. Write the check yourself: `EmailStr` from Day 3 raises `ValidationError`, and this exercise wants `ValueError`.
+     * `register(self, email: str) -> dict[str, str]` — call `validate_email` first. If the email is already in the dictionary, return that same entry and do not overwrite it. Otherwise store `{"email": email}` and return it.
+     * `get_user(self, email: str) -> dict[str, str]` — return the entry from the dictionary. A missing key raises `KeyError`.
+   * Write tests in a `test_*.py` file:
+     * `@pytest.fixture` returns a new `UserService` before every test that asks for it.
+     * One test with `@pytest.mark.parametrize` checks five strings. Include both valid and invalid addresses. A valid one passes through `validate_email`. An invalid one is caught with `pytest.raises(ValueError)`.
+     * Calling `register` twice with the same email returns the same dictionary (`is`). `_users` then holds one entry. A different email is a separate entry.
+     * `get_user` after `register` returns the stored entry. `get_user` for an unknown address is caught with `pytest.raises(KeyError)`.
 
 ---
 

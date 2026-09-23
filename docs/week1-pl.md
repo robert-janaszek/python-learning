@@ -636,11 +636,18 @@ async def test_pause() -> None:
 
 1. **Zadanie kodowe:**
 
-- Zbuduj prosty klasowy serwis `UserService` z pamięcią podręczną (słownik).
-- Napisz zestaw testów w `pytest`:
-- Użyj `@pytest.fixture` do przygotowania czystej instancji `UserService` przed każdym testem.
-- Użyj `@pytest.mark.parametrize` do przetestowania walidacji adresów e-mail na 5 różnych prawidłowych i nieprawidłowych ciągach znaków w jednym teście.
-- Użyj `pytest.raises(ValueError)` do weryfikacji rzucanych wyjątków.
+`UserService` pamięta użytkowników w słowniku na instancji. Kluczem jest e-mail. Drugie pobranie tego samego adresu oddaje zapisany wpis. Fixture z czystym `UserService` zaczyna każdy test od pustego słownika: rejestracja w jednym teście nie zostawia użytkownika w następnym.
+
+- Zbuduj klasę `UserService`:
+  - W `__init__` utwórz pusty słownik `self._users: dict[str, dict[str, str]]`.
+  - `validate_email(self, email: str) -> None` — adres jest poprawny, gdy ma dokładnie jeden `@`, a część przed nim i po nim jest niepusta. Poprawny adres wraca bez błędu. Inny rzuca `ValueError`. Sprawdzenie napisz sam: `EmailStr` z Dnia 3 rzuca `ValidationError`, a tu wyjątkiem jest `ValueError`.
+  - `register(self, email: str) -> dict[str, str]` — najpierw `validate_email`. Gdy e-mail jest już w słowniku, zwróć ten sam wpis i niczego nie nadpisuj. W przeciwnym razie zapisz `{"email": email}` i go zwróć.
+  - `get_user(self, email: str) -> dict[str, str]` — zwróć wpis ze słownika. Brak klucza rzuca `KeyError`.
+- Napisz testy w pliku `test_*.py`:
+  - `@pytest.fixture` zwraca nowy `UserService` przed każdym testem, który o niego prosi.
+  - Jeden test z `@pytest.mark.parametrize` sprawdza pięć ciągów. Są wśród nich adresy poprawne i niepoprawne. Poprawny przechodzi przez `validate_email`. Niepoprawny łapie `pytest.raises(ValueError)`.
+  - Dwa razy `register` z tym samym e-mailem zwraca ten sam słownik (`is`). W `_users` jest wtedy jeden wpis. Inny e-mail to osobny wpis.
+  - `get_user` po `register` zwraca zapisany wpis. `get_user` nieznanego adresu łapie `pytest.raises(KeyError)`.
 
 ---
 
