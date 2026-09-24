@@ -1,6 +1,7 @@
 import asyncio
 import time
 from collections import defaultdict
+from typing import TypedDict
 
 from pydantic import ValidationError
 
@@ -10,8 +11,14 @@ from python_week1.timer import Timer
 from python_week1.user_payload import UserPayload
 
 
+class Log(TypedDict):
+    user_id: int
+    action: str
+    duration: int
+
+
 def Day1() -> None:
-    logs = [
+    logs: list[Log] = [
         {"user_id": 1, "action": "login", "duration": 120},
         {"user_id": 2, "action": "login", "duration": 110},
         {"user_id": 1, "action": "logout", "duration": 90},
@@ -38,7 +45,7 @@ def Day1() -> None:
         time.sleep(0.1)
 
     try:
-        UserPayload(email="me@me.com", roles=[""])
+        UserPayload.model_validate({"email": "me@me.com", "roles": [""]})
     except ValidationError as err:
         print("user payload creation error occurred")
         print(err)
@@ -68,19 +75,19 @@ def Day1() -> None:
     asyncio.run(fetch_all())
 
 
-def login_durations(logs: list[dict]) -> list[int]:
+def login_durations(logs: list[Log]) -> list[int]:
     return [l["duration"] for l in logs if l["action"] == "login"]
 
 
-def last_login_duration(logs: list[dict]) -> dict[int, int]:
+def last_login_duration(logs: list[Log]) -> dict[int, int]:
     return {l["user_id"]: l["duration"] for l in logs if l["action"] == "login"}
 
 
-def total_login_duration(logs: list[dict]) -> dict[int, int]:
-    totals = defaultdict(int)
+def total_login_duration(logs: list[Log]) -> dict[int, int]:
+    totals = defaultdict[int, int](int)
 
     for log in logs:
         if log["action"] == "login":
             totals[log["user_id"]] += log["duration"]
 
-    return dict(totals)
+    return dict[int, int](totals)

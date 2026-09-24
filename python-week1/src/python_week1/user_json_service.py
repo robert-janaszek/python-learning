@@ -2,6 +2,7 @@ import asyncio
 import json
 from collections import defaultdict
 from pathlib import Path
+from typing import cast
 
 from python_week1.user_payload import UserPayload
 
@@ -10,7 +11,12 @@ class UserJsonService:
     def load_users(self, path: Path) -> list[UserPayload]:
         raw = path.read_text(encoding="utf-8")
         users = json.loads(raw)
-        users_parsed = [UserPayload.model_validate(user) for user in users]
+        if not isinstance(users, list):
+            raise TypeError("users file must contain a list")
+
+        users_parsed = [
+            UserPayload.model_validate(user) for user in cast(list[object], users)
+        ]
 
         return users_parsed
 

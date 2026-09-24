@@ -4,12 +4,12 @@ import time
 from python_week1.timer import Timer
 
 
-async def fetch_metrics(service_id: int) -> dict:
+async def fetch_metrics(service_id: int) -> dict[str, int]:
     await asyncio.sleep(0.5)
     return {"service_id": service_id}
 
 
-def fetch_metrics_sync(service_id: int) -> dict:
+def fetch_metrics_sync(service_id: int) -> dict[str, int]:
     time.sleep(2)
     return {"service_id": service_id}
 
@@ -19,7 +19,7 @@ async def fetch_all() -> None:
 
     with Timer("fetching services"):
 
-        async def fetch_one(item: int) -> dict:
+        async def fetch_one(item: int) -> dict[str, int]:
             async with workers:
                 if item == 3:
                     return await asyncio.to_thread(fetch_metrics_sync, item)

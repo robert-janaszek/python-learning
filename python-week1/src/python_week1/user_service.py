@@ -1,5 +1,5 @@
 class UserService:
-    def __init__(self):
+    def __init__(self) -> None:
         self._users: dict[str, dict[str, str]] = {}
 
     def register(self, email: str) -> dict[str, str]:

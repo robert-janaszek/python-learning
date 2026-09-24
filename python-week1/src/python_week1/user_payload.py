@@ -13,7 +13,7 @@ class UserPayload(BaseModel):
 
     @field_validator("roles")
     @classmethod
-    def validate_role(cls, value):
+    def validate_role(cls, value: list[str]) -> list[str]:
         if not value:
             raise ValueError("roles cannot be empty")
         return value

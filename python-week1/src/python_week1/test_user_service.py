@@ -31,10 +31,11 @@ def test_register(user_service: UserService) -> None:
     user_dict2 = user_service.register("me@company.com")
 
     assert user_dict is user_dict2
-    assert len(user_service._users) == 1
 
-    user_service.register("next@company.com")
-    assert len(user_service._users) == 2
+    registered_next_user = user_service.register("next@company.com")
+    next_user = user_service.get_user("next@company.com")
+
+    assert next_user is registered_next_user
 
     user_dict3 = user_service.get_user("me@company.com")
     assert user_dict is user_dict3
