@@ -124,9 +124,17 @@ Celem tego tygodnia jest zbudowanie w pełni przetestowanego REST API do zarząd
 ### Dzień 8: Konfiguracja projektu i DTO z Pydantic v2
 
 * **Zadanie:**
-1. Zainstaluj w projekcie potrzebne pakiety za pomocą `uv`:
+1. Zainicjalizuj projekt: `uv init python-week2 && cd python-week2`
+2. Dodaj Pyright: `uv add --dev pyright` i w `pyproject.toml` włącz tryb strict:
+
+```toml
+[tool.pyright]
+typeCheckingMode = "strict"
+```
+
+3. Zainstaluj w projekcie potrzebne pakiety za pomocą `uv`:
 `uv add fastapi uvicorn sqlalchemy aiosqlite alembic httpx pytest-asyncio`
-2. Zdefiniuj strukturę plików projektu:
+4. Zdefiniuj strukturę plików projektu:
 ```text
 src/
   ├── database.py
@@ -139,7 +147,7 @@ tests/
 ```
 
 
-3. W `schemas.py` stwórz modele Pydantic dla encji `Project` oraz `Task`:
+5. W `schemas.py` stwórz modele Pydantic dla encji `Project` oraz `Task`:
 * `ProjectCreate` (`name: str`, `description: str | None`)
 * `ProjectResponse` (`id: int`, `name: str`, `created_at: datetime`)
 * `TaskCreate` (`title: str`, `priority: Literal["low", "medium", "high"]`)

@@ -124,9 +124,17 @@ The goal of this week is to build a fully tested REST API for managing projects 
 ### Day 8: Project setup and DTOs with Pydantic v2
 
 * **Task:**
-1. Install the required packages in the project with `uv`:
+1. Initialize the project: `uv init python-week2 && cd python-week2`
+2. Add Pyright: `uv add --dev pyright` and enable strict mode in `pyproject.toml`:
+
+```toml
+[tool.pyright]
+typeCheckingMode = "strict"
+```
+
+3. Install the required packages in the project with `uv`:
 `uv add fastapi uvicorn sqlalchemy aiosqlite alembic httpx pytest-asyncio`
-2. Define the project file structure:
+4. Define the project file structure:
 ```text
 src/
   ├── database.py
@@ -137,7 +145,7 @@ tests/
   └── test_api.py
 
 ```
-3. In `schemas.py` create Pydantic models for the `Project` and `Task` entities:
+5. In `schemas.py` create Pydantic models for the `Project` and `Task` entities:
 * `ProjectCreate` (`name: str`, `description: str | None`)
 * `ProjectResponse` (`id: int`, `name: str`, `created_at: datetime`)
 * `TaskCreate` (`title: str`, `priority: Literal["low", "medium", "high"]`)
