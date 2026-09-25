@@ -1,5 +1,5 @@
 {
-  "python.defaultInterpreterPath": "${workspaceFolder}/python-week1/.venv/bin/python",
+  "python.defaultInterpreterPath": "${workspaceFolder}/python-week2/.venv/bin/python",
   "editor.detectIndentation": false,
   "editor.insertSpaces": true,
   "editor.tabSize": 4,
