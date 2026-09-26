@@ -133,7 +133,7 @@ typeCheckingMode = "strict"
 ```
 
 3. Install the required packages in the project with `uv`:
-`uv add fastapi uvicorn sqlalchemy aiosqlite alembic httpx pytest-asyncio`
+`uv add fastapi uvicorn sqlalchemy aiosqlite alembic httpx pytest-asyncio greenlet`
 4. Define the project file structure:
 ```text
 src/
@@ -156,7 +156,7 @@ tests/
 ### Day 9: ORM models and the database layer (SQLAlchemy 2.0)
 
 * **Task:**
-1. In `models.py` create SQLAlchemy models for the `projects` and `tasks` tables.
+1. In `models.py` create SQLAlchemy models for the `projects` and `tasks` tables. Take the columns from the Pydantic schemas in `schemas.py`.
 2. Implement a one-to-many relationship between `ProjectModel` and `TaskModel` using `relationship()` and `ForeignKey`.
 3. In `database.py` prepare an async `engine`, `async_sessionmaker`, and a dependency function `get_db()` that uses an async generator (`yield`) to hand out a session and close it after the request is handled.
 
