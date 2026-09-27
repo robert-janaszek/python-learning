@@ -12,6 +12,8 @@ class ProjectResponse(BaseModel):
     name: str
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
+class ProjectsResponse(ProjectResponse):
+    task_count: int
 
 class TaskCreate(BaseModel):
     title: str
