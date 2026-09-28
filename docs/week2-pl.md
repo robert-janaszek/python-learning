@@ -1,49 +1,57 @@
 # Tydzień 2: Async Architecture, Web API (FastAPI) i Dostęp do Baz Danych (SQLAlchemy 2.0)
 
-W tym tygodniu przechodzimy od czystego języka do budowania produkcyjnych serwisów backendowych. Zamiast szukać informacji po dokumentacjach, poniżej znajdziesz kompletne wprowadzenie teoretyczne wraz z kodem dla każdego kluczowego konceptu.
+W tym tygodniu przechodzimy od czystego języka do budowania produkcyjnych serwisów backendowych. Przy każdym dniu najpierw jest przykład, a zaraz pod nim zadanie.
+
+Celem tego tygodnia jest zbudowanie w pełni przetestowanego REST API do zarządzania projektami i zadaniami (Mini-Jira) z asynchroniczną bazą danych.
 
 ---
 
-## 1. Wprowadzenie i Koncepty
-
-### A. FastAPI i Architektura ASGI
+### Dzień 8: Konfiguracja projektu i DTO z Pydantic v2
 
 W świecie JS/TS odpowiednikiem FastAPI jest NestJS lub Express, ale FastAPI bazuje na standardzie **ASGI** (Asynchronous Server Gateway Interface) – odpowiedniku WSGI dla kodu asynchronicznego.
 
 * **Pydantic jako warstwa I/O:** FastAPI automatycznie waliduje requesty i response'y używając modeli Pydantic. Generuje też gotową dokumentację OpenAPI (`/docs`).
-* **Dependency Injection (DI):** Posiada wbudowany kontener wstrzykiwania zależności (`Depends`), służący do zarządzania sesjami bazy danych, autoryzacją czy konfiguracją.
 
 ```python
-from fastapi import FastAPI, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr
-
-app = FastAPI()
 
 # Model I/O (DTO)
 class UserCreate(BaseModel):
     email: EmailStr
     age: int
+```
 
-# Zależność (Dependency Injection)
-def get_db_session():
-    db = {"connected": True}
-    try:
-        yield db
-    finally:
-        # Cleanup (odpowiednik połączenia z bazą)
-        db["connected"] = False
+* **Zadanie:**
+1. Zainicjalizuj projekt: `uv init python-week2 && cd python-week2`
+2. Dodaj Pyright: `uv add --dev pyright` i w `pyproject.toml` włącz tryb strict:
 
-@app.post("/users", status_code=status.HTTP_201_CREATED)
-async def create_user(payload: UserCreate, db: dict = Depends(get_db_session)):
-    if payload.age < 18:
-        raise HTTPException(status_code=400, detail="User must be adult")
-    return {"status": "created", "email": payload.email}
+```toml
+[tool.pyright]
+typeCheckingMode = "strict"
+```
+
+3. Zainstaluj w projekcie potrzebne pakiety za pomocą `uv`:
+`uv add fastapi uvicorn sqlalchemy aiosqlite alembic httpx pytest-asyncio greenlet`
+4. Zdefiniuj strukturę plików projektu:
+```text
+src/
+  ├── database.py
+  ├── models.py
+  ├── schemas.py
+  ├── main.py
+tests/
+  └── test_api.py
 
 ```
+5. W `schemas.py` stwórz modele Pydantic dla encji `Project` oraz `Task`:
+* `ProjectCreate` (`name: str`, `description: str | None`)
+* `ProjectResponse` (`id: int`, `name: str`, `created_at: datetime`)
+* `TaskCreate` (`title: str`, `priority: Literal["low", "medium", "high"]`)
+* `TaskResponse` (`id: int`, `title: str`, `is_completed: bool`, `project_id: int`)
 
 ---
 
-### B. SQLAlchemy 2.0 (Modern Async ORM)
+### Dzień 9: Modele ORM i warstwa bazy danych (SQLAlchemy 2.0)
 
 W Pythonie SQLAlchemy jest standardem rynkowym (jak Prisma czy TypeORM w TS). Version 2.0 wprowadziła w pełni asynchroniczny interfejs i jawne typowanie.
 
@@ -78,21 +86,67 @@ async def get_user_by_email(session: AsyncSession, email: str) -> UserModel | No
     stmt = select(UserModel).where(UserModel.email == email)
     result = await session.execute(stmt)
     return result.scalar_one_or_none()
-
 ```
+
+* **Dependency Injection (DI):** FastAPI ma wbudowany kontener wstrzykiwania zależności (`Depends`), służący do zarządzania sesjami bazy danych, autoryzacją czy konfiguracją. Zależność to generator: `yield` oddaje sesję na czas requestu, a kod po `yield` zamyka ją po obsłudze.
+
+```python
+def get_db_session():
+    db = {"connected": True}
+    try:
+        yield db
+    finally:
+        # Cleanup (odpowiednik połączenia z bazą)
+        db["connected"] = False
+```
+
+* **Zadanie:**
+1. W `models.py` utwórz modele SQLAlchemy dla tabel `projects` i `tasks`. Kolumny weź ze schematów Pydantic w `schemas.py`.
+2. Zaimplementuj relację One-to-Many między `ProjectModel` a `TaskModel` używając `relationship()` oraz `ForeignKey`.
+3. W `database.py` przygotuj asynchroniczny `engine`, `async_sessionmaker` oraz funkcję zależną `get_db()`, która używa generatora asynchronicznego (`yield`) do przekazywania sesji i zamykania jej po obsłudze żądania.
 
 ---
 
-### C. Migracje Bazodanowe z Alembic
+### Dzień 10: Inicjalizacja Migracji (Alembic)
 
 Alembic to narzędzie towarzyszące SQLAlchemy (odpowiednik `prisma migrate` lub `typeorm migration`).
 
 * Przechowuje stan bazy w tabeli `alembic_version`.
 * Potrafi automatycznie wykrywać zmiany w strukturze klas `DeclarativeBase` i generować skrypty migracyjne (`autogenerate`).
 
+* **Zadanie:**
+1. Zinicjalizuj Alembic w projekcie: `uv run alembic init -t async alembic`
+2. Skonfiguruj `alembic/env.py`, podłączając `target_metadata = Base.metadata` z Twoich modeli.
+3. Wygeneruj pierwszą automatyczną migrację:
+`uv run alembic revision --autogenerate -m "Initial tables"`
+4. Uruchom migrację: `uv run alembic upgrade head`.
+
 ---
 
-### D. Integration Testing w `pytest` z `httpx`
+### Dzień 11: Endpoints API w FastAPI
+
+Endpoint dostaje payload Pydantic i zależności przez `Depends`. `HTTPException` przerywa obsługę i zwraca status błędu.
+
+```python
+from fastapi import Depends, HTTPException, status
+
+@app.post("/users", status_code=status.HTTP_201_CREATED)
+async def create_user(payload: UserCreate, db: dict = Depends(get_db_session)):
+    if payload.age < 18:
+        raise HTTPException(status_code=400, detail="User must be adult")
+    return {"status": "created", "email": payload.email}
+```
+
+* **Zadanie:**
+W `main.py` stwórz następujące punkty końcowe:
+* `POST /projects/` – Tworzenie nowego projektu.
+* `GET /projects/` – Pobieranie listy projektów wraz z liczbą przypisanych zadań.
+* `POST /projects/{project_id}/tasks/` – Tworzenie zadania przypisanego do danego projektu (zwróć `HTTP 404`, jeśli projekt nie istnieje).
+* `PATCH /tasks/{task_id}/complete` – Oznaczenie zadania jako zakończonego.
+
+---
+
+### Dzień 12: Testy Integracyjne (pytest + AsyncClient)
 
 Do testowania asynchronicznych punktów końcowych FastAPI używamy `AsyncClient` z biblioteki `httpx` połączonego z fixture'ami `pytest`.
 
@@ -112,91 +166,7 @@ async def test_create_user(async_client: AsyncClient):
     response = await async_client.post("/users", json={"email": "dev@test.com", "age": 25})
     assert response.status_code == 201
     assert response.json()["email"] == "dev@test.com"
-
 ```
-
----
-
-## 2. Plan Zadań na Tydzień 2
-
-Celem tego tygodnia jest zbudowanie w pełni przetestowanego REST API do zarządzania projektami i zadaniami (Mini-Jira) z asynchroniczną bazą danych.
-
-### Dzień 8: Konfiguracja projektu i DTO z Pydantic v2
-
-* **Zadanie:**
-1. Zainicjalizuj projekt: `uv init python-week2 && cd python-week2`
-2. Dodaj Pyright: `uv add --dev pyright` i w `pyproject.toml` włącz tryb strict:
-
-```toml
-[tool.pyright]
-typeCheckingMode = "strict"
-```
-
-3. Zainstaluj w projekcie potrzebne pakiety za pomocą `uv`:
-`uv add fastapi uvicorn sqlalchemy aiosqlite alembic httpx pytest-asyncio greenlet`
-4. Zdefiniuj strukturę plików projektu:
-```text
-src/
-  ├── database.py
-  ├── models.py
-  ├── schemas.py
-  ├── main.py
-tests/
-  └── test_api.py
-
-```
-
-
-5. W `schemas.py` stwórz modele Pydantic dla encji `Project` oraz `Task`:
-* `ProjectCreate` (`name: str`, `description: str | None`)
-* `ProjectResponse` (`id: int`, `name: str`, `created_at: datetime`)
-* `TaskCreate` (`title: str`, `priority: Literal["low", "medium", "high"]`)
-* `TaskResponse` (`id: int`, `title: str`, `is_completed: bool`, `project_id: int`)
-
-
-
-
-
----
-
-### Dzień 9: Modele ORM i warstwa bazy danych (SQLAlchemy 2.0)
-
-* **Zadanie:**
-1. W `models.py` utwórz modele SQLAlchemy dla tabel `projects` i `tasks`. Kolumny weź ze schematów Pydantic w `schemas.py`.
-2. Zaimplementuj relację One-to-Many między `ProjectModel` a `TaskModel` używając `relationship()` oraz `ForeignKey`.
-3. W `database.py` przygotuj asynchroniczny `engine`, `async_sessionmaker` oraz funkcję zależną `get_db()`, która używa generatora asynchronicznego (`yield`) do przekazywania sesji i zamykania jej po obsłudze żądania.
-
-
-
----
-
-### Dzień 10: Inicjalizacja Migracji (Alembic)
-
-* **Zadanie:**
-1. Zinicjalizuj Alembic w projekcie: `uv run alembic init -t async alembic`
-2. Skonfiguruj `alembic/env.py`, podłączając `target_metadata = Base.metadata` z Twoich modeli.
-3. Wygeneruj pierwszą automatyczną migrację:
-`uv run alembic revision --autogenerate -m "Initial tables"`
-4. Uruchom migrację: `uv run alembic upgrade head`.
-
-
-
----
-
-### Dzień 11: Endpoints API w FastAPI
-
-* **Zadanie:**
-W `main.py` stwórz następujące punkty końcowe:
-* `POST /projects/` – Tworzenie nowego projektu.
-* `GET /projects/` – Pobieranie listy projektów wraz z liczbą przypisanych zadań.
-* `POST /projects/{project_id}/tasks/` – Tworzenie zadania przypisanego do danego projektu (zwróć `HTTP 404`, jeśli projekt nie istnieje).
-* `PATCH /tasks/{task_id}/complete` – Oznaczenie zadania jako zakończonego.
-
-
-
----
-
-### Dzień 12: Testy Integracyjne (pytest + AsyncClient)
 
 * **Zadanie:**
 1. Skonfiguruj `conftest.py` w katalogu `tests/`. Stwórz fixture dla asynchronicznej sesji bazodanowej działającej na bazie SQLite w pamięci (`sqlite+aiosqlite:///:memory:`).
@@ -206,19 +176,42 @@ W `main.py` stwórz następujące punkty końcowe:
 * Próby dodania zadania do nieistniejącego projektu (sprawdzenie statusu 404).
 * Odczytu listy projektów.
 
-
-
-
-
 ---
 
 ### Dzień 13: Handling błędów, Middleware i Strukturacja Logów
 
+Request w FastAPI przechodzi przez stos middleware, potem trafia do endpointu. Odpowiedź wraca tą samą drogą. To dwa miejsca na kod, który dotyczy wielu endpointów naraz, a nie jednej ścieżki.
+
+* **Exception handler:** funkcja rejestrowana przez `@app.exception_handler(TypWyjątku)`. FastAPI woła ją, gdy podczas obsługi requestu poleci ten wyjątek albo jego podklasa, i oczekuje obiektu `Response` (zwykle `JSONResponse`). Własna klasa błędu zamienia się wtedy w jeden kształt JSON. Odpowiednik exception filtera w NestJS.
+* **Middleware HTTP:** funkcja rejestrowana przez `@app.middleware("http")`. Dostaje `request` i `call_next`. `response = await call_next(request)` puszcza request dalej (kolejne middleware i endpoint) i zwraca odpowiedź. Po tym wywołaniu można ją zmienić, na przykład dopisać nagłówek, i trzeba ją zwrócić. Odpowiednik `app.use` w Express.
+
+```python
+import time
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+
+app = FastAPI()
+
+class QuotaExceeded(Exception):
+    def __init__(self, message: str) -> None:
+        self.message = message
+
+@app.exception_handler(QuotaExceeded)
+async def quota_exceeded_handler(request: Request, exc: QuotaExceeded) -> JSONResponse:
+    return JSONResponse(status_code=429, content={"detail": exc.message})
+
+@app.middleware("http")
+async def add_timing_header(request: Request, call_next):
+    started = time.perf_counter()
+    response = await call_next(request)
+    elapsed_ms = (time.perf_counter() - started) * 1000
+    response.headers["X-Response-Time-Ms"] = f"{elapsed_ms:.1f}"
+    return response
+```
+
 * **Zadanie:**
 1. Stwórz własny wyjątek w Pythonie `DomainException` i zarejestruj dla niego `exception_handler` w FastAPI, aby zwracał ujednoliconą strukturę błędu JSON (`{"error": "message", "code": "CUSTOM_CODE"}`).
 2. Dodaj proste middleware mierzące czas wykonania każdego requestu HTTP i dodające nagłówek `X-Process-Time` do odpowiedzi.
-
-
 
 ---
 
@@ -228,6 +221,4 @@ W `main.py` stwórz następujące punkty końcowe:
 1. Przygotuj optymalny, wieloetapowy plik `Dockerfile` dla aplikacji z wykorzystaniem `uv`:
 * Stage 1 (Builder): Przygotowanie środowiska i instalacja zależności.
 * Stage 2 (Runner): Kopiowanie tylko gotowego środowiska venv i kodu aplikacji, uruchomienie jako nie-root user.
-
-
 2. Uruchom kontener i przetestuj ręcznie dokumentację pod adresem `http://localhost:8000/docs`.
