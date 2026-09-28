@@ -1,5 +1,7 @@
-from fastapi import FastAPI, Depends, HTTPException, status
+import time
+from fastapi import FastAPI, Depends, HTTPException, Request, status
 
+from fastapi.responses import JSONResponse
 from sqlalchemy import func, insert, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -8,6 +10,26 @@ from python_week2.database import get_db
 from python_week2.schemas import ProjectCreate, ProjectResponse, ProjectsResponse, TaskCreate, TaskResponse
 
 app = FastAPI()
+
+class DomainException(Exception):
+    def __init__(self, message: str, status_code: int, code: str):
+        super().__init__(message)
+        self.message = message
+        self.code = code
+        self.status_code = status_code
+
+@app.exception_handler(DomainException)
+async def domain_exception_handler(request: Request, exc: DomainException) -> JSONResponse:
+    return JSONResponse(status_code=exc.status_code, content={"error": exc.message, "code": exc.code })
+
+
+@app.middleware("http")
+async def add_timing_header(request: Request, call_next):
+    started = time.perf_counter()
+    response = await call_next(request)
+    elapsed_ms = (time.perf_counter() - started) * 1000
+    response.headers["X-Process-Time"] = f"{elapsed_ms:.1f}"
+    return response
 
 
 @app.post("/projects/", status_code=status.HTTP_201_CREATED, response_model=ProjectResponse)
