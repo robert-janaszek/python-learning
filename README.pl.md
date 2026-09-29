@@ -18,9 +18,6 @@ Dotyczy to modułów w `python-week1/src/python_week1/` (implementacja i testy).
 
 Potem idź dzień po dniu. Teoria jest na początku dnia, zadania na końcu.
 
-- Tydzień 1: [docs/week1-pl.md](docs/week1-pl.md) · [docs/week1-en.md](docs/week1-en.md)
-- Tydzień 2: [docs/week2-pl.md](docs/week2-pl.md) · [docs/week2-en.md](docs/week2-en.md)
-
 ## Wymagania
 
 - Python 3.14 (`python-week1/.python-version`)

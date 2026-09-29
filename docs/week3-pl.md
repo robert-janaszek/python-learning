@@ -273,9 +273,10 @@ Połącz wszystkie elementy zbudowane w tym tygodniu w jeden spójny microservic
 
 1. Skonfiguruj `docker-compose.yml`, który podnosi:
 * Aplikację FastAPI
-* Bazę danych PostgreSQL
 * Instancję Redis
 * Worker ARQ / Celery
+
+Baza zostaje SQLite (`app.db` z Tygodnia 2). To plik obok aplikacji, nie osobny kontener.
 
 
 2. Upewnij się, że start aplikacji automatycznie wykonuje migracje Alembic (`alembic upgrade head`).

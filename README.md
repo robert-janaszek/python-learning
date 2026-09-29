@@ -18,9 +18,6 @@ This applies to the modules in `python-week1/src/python_week1/` (implementation 
 
 Then go day by day. Theory is at the start of the day, tasks at the end.
 
-- Week 1: [docs/week1-en.md](docs/week1-en.md) · [docs/week1-pl.md](docs/week1-pl.md)
-- Week 2: [docs/week2-en.md](docs/week2-en.md) · [docs/week2-pl.md](docs/week2-pl.md)
-
 ## Requirements
 
 - Python 3.14 (`python-week1/.python-version`)

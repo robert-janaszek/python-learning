@@ -273,9 +273,10 @@ Combine every piece built this week into one coherent microservice:
 
 1. Configure a `docker-compose.yml` that starts:
 * The FastAPI application
-* A PostgreSQL database
 * A Redis instance
 * An ARQ / Celery worker
+
+The database stays SQLite (`app.db` from Week 2). It is a file next to the app, not its own container.
 
 
 2. Make sure application startup automatically runs Alembic migrations (`alembic upgrade head`).
