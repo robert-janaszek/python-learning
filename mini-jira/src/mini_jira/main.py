@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse
 from mini_jira.exception import DomainException
 from mini_jira.project.router import router as project_router
 from mini_jira.task.router import router as task_router
+from mini_jira.chat.router import router as chat_router
 
 app = FastAPI()
 
@@ -26,3 +27,4 @@ async def add_timing_header(request: Request, call_next: RequestResponseEndpoint
 
 app.include_router(project_router)
 app.include_router(task_router)
+app.include_router(chat_router)

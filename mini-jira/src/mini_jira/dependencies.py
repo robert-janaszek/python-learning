@@ -1,4 +1,5 @@
 from fastapi import Depends
+from mini_jira.chat.service import ChatService
 from mini_jira.project.repository import ProjectRepository
 from mini_jira.project.service import ProjectService
 from mini_jira.task.repository import TaskRepository
@@ -29,3 +30,7 @@ def get_task_service(
     session: AsyncSession = Depends(get_db)
 ) -> TaskService:
     return TaskService(task_repository, project_repository, session)
+
+def get_chat_service():
+    return ChatService()
+    

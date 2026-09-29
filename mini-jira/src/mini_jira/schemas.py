@@ -25,3 +25,6 @@ class TaskResponse(BaseModel):
     title: str
     is_completed: bool
     project_id: int
+
+class ChatPrompt(BaseModel):
+    prompt: str
