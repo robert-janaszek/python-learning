@@ -28,4 +28,3 @@ class ProjectService:
         (project_id, created_at) = await self.project_repository.create_project(payload)
         await self.session.commit()
         return ProjectResponse(id=project_id, name=payload.name, created_at=created_at)
-    
