@@ -2,7 +2,7 @@
 
 This week we move from the language itself to building production backend services. Each day starts with an example, and the task follows immediately below it.
 
-The goal of this week is to build a fully tested REST API for managing projects and tasks (Mini-Jira) with an asynchronous database.
+The goal of this week is to build a fully tested REST API for managing projects and tasks (Mini-Jira) with an asynchronous database. The project directory is `mini-jira`. Weeks 3–6 keep using that same directory.
 
 ---
 
@@ -22,7 +22,7 @@ class UserCreate(BaseModel):
 ```
 
 * **Task:**
-1. Initialize the project: `uv init python-week2 && cd python-week2`
+1. Initialize the project: `uv init mini-jira && cd mini-jira`
 2. Add Pyright: `uv add --dev pyright` and enable strict mode in `pyproject.toml`:
 
 ```toml
@@ -35,13 +35,13 @@ typeCheckingMode = "strict"
 4. Define the project file structure:
 ```text
 src/
-  ├── database.py
-  ├── models.py
-  ├── schemas.py
-  ├── main.py
+  mini_jira/
+    ├── database.py
+    ├── models.py
+    ├── schemas.py
+    ├── main.py
 tests/
   └── test_api.py
-
 ```
 5. In `schemas.py` create Pydantic models for the `Project` and `Task` entities:
 * `ProjectCreate` (`name: str`, `description: str | None`)

@@ -1,6 +1,6 @@
 # Week 6: Distributed Systems, Asynchronous AI, and Production Operations
 
-In the last week you plug the AI modules into a production-shaped system: queues, SSE streaming, and full observability.
+In the last week you plug the AI modules into a production-shaped system: queues, SSE streaming, and full observability. Keep working in the `mini-jira` directory from Week 2.
 
 ---
 

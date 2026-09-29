@@ -9,11 +9,11 @@ Tekst poniżej to ściąga językowa na **dziś**. Zadania są na końcu dnia. P
 ### 1. Konfiguracja środowiska
 
 - Zainstaluj `uv` (jeśli jeszcze nie masz): `curl -LsSf https://astral.sh/uv/install.sh | sh`
-- Inicjalizacja projektu: `uv init python-week1 && cd python-week1`
+- Inicjalizacja projektu: `uv init introduction && cd introduction`
 - Dodaj Ruff: `uv add --dev ruff`
 - Linter i formatter: `uv run ruff check .` oraz `uv run ruff format .`
-- Uruchom kod: `uv run python-week1` (z katalogu `python-week1`). To woła `python_week1:main` z `pyproject.toml`. `uv run` używa lokalnego `.venv`, nie musisz go aktywować ręcznie.
-- `uv run python -m python_week1` nic nie wykona, dopóki w pakiecie nie ma `__main__.py`, a `main()` nie jest wołane przy imporcie.
+- Uruchom kod: `uv run introduction` (z katalogu `introduction`). To woła `introduction.__main__:main` z `pyproject.toml`. `uv run` używa lokalnego `.venv`, nie musisz go aktywować ręcznie.
+- `uv run python -m introduction` nic nie wykona, dopóki w pakiecie nie ma `__main__.py`, a `main()` nie jest wołane przy imporcie.
 
 ---
 
@@ -333,7 +333,7 @@ Oczekiwany wynik: `{1: 30, 2: 110}`.
 
 Oczekiwany wynik: `{1: 150, 2: 110}`.
 
-Sprawdzenie: `uv run python-week1` z katalogu `python-week1`.
+Sprawdzenie: `uv run introduction` z katalogu `introduction`.
 
 ---
 
@@ -577,7 +577,7 @@ Argumenty funkcji idą po niej: `to_thread(slow_label, "water")` znaczy `slow_la
 
 ### Wprowadzenie do `pytest`
 
-Test to funkcja `test_...` w pliku `test_*.py`. `pytest` sam je zbiera. Uruchomienie z katalogu `python-week1`: `uv run pytest`. Asercja to zwykłe `assert`. Fałsz kończy test i pokazuje wartości po obu stronach porównania.
+Test to funkcja `test_...` w pliku `test_*.py`. `pytest` sam je zbiera. Uruchomienie z katalogu `introduction`: `uv run pytest`. Asercja to zwykłe `assert`. Fałsz kończy test i pokazuje wartości po obu stronach porównania.
 
 Fixture przygotowuje obiekt przed testem. `@pytest.fixture` stoi nad `def`, tak jak dekoratory z Dnia 3. Test dostaje wynik fixture'a przez argument o tej samej nazwie. Domyślnie fixture wykonuje się od nowa przed każdym testem, który o niego prosi.
 
@@ -657,7 +657,7 @@ async def test_pause() -> None:
 
 ### Wprowadzenie do CLI, plików i JSON
 
-`uv run python-week1` woła `main()`. Dodatkowe słowa po nazwie polecenia lądują w `sys.argv`. `argparse` je czyta i zgłasza błąd, gdy brakuje wymaganego argumentu.
+`uv run introduction` woła `main()`. Dodatkowe słowa po nazwie polecenia lądują w `sys.argv`. `argparse` je czyta i zgłasza błąd, gdy brakuje wymaganego argumentu.
 
 ```python
 import argparse
@@ -672,7 +672,7 @@ def main() -> None:
     print(text)
 ```
 
-Wywołanie: `uv run python-week1 notes.txt`. `Path.read_text` zwraca całą treść pliku jako `str`. `Path.write_text` nadpisuje plik podaną treścią.
+Wywołanie: `uv run introduction notes.txt`. `Path.read_text` zwraca całą treść pliku jako `str`. `Path.write_text` nadpisuje plik podaną treścią.
 
 `json.loads` zamienia tekst JSON na obiekty Pythona. Tablica JSON staje się `list`, obiekt JSON staje się `dict`. `json.dumps` idzie w drugą stronę: z obiektu Pythona robi tekst.
 
@@ -705,7 +705,7 @@ Jeden obiekt JSON, który ma pasować do modelu Pydantic, podajesz jako tekst do
 
 ### Wprowadzenie do trybu strict
 
-Pyright w trybie strict czyta adnotacje i odrzuca miejsca, w których typ może być czymkolwiek. W `python-week1/pyproject.toml`:
+Pyright w trybie strict czyta adnotacje i odrzuca miejsca, w których typ może być czymkolwiek. W `introduction/pyproject.toml`:
 
 ```toml
 [tool.pyright]
@@ -736,7 +736,7 @@ def shout(name: str | None) -> str:
 
 `Any` wyłącza sprawdzanie w tym miejscu. Strict nadal pozwoli je wpisać, a zadanie każe takie miejsca usunąć: argument, wynik i atrybut dostają konkretny typ.
 
-Cztery polecenia z katalogu `python-week1` sprawdzają co innego. `ruff check` szuka błędów stylu i oczywistych bugów. `ruff format --check` porównuje układ pliku z formaterem i nic nie zmienia. `pyright` sprawdza typy. `pytest` odpala testy.
+Cztery polecenia z katalogu `introduction` sprawdzają co innego. `ruff check` szuka błędów stylu i oczywistych bugów. `ruff format --check` porównuje układ pliku z formaterem i nic nie zmienia. `pyright` sprawdza typy. `pytest` odpala testy.
 
 1. Włącz w `pyproject.toml` ścisłą kontrolę typów dla Pyright (`typeCheckingMode = "strict"`) lub Mypy (`strict = true`).
 2. Przejrzyj kod z Dnia 6 i wyeliminuj wszystkie ostrzeżenia typowania (brakujące `None`, typy `Any`, niezgodności z `Optional`).

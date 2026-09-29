@@ -14,20 +14,20 @@ rate_limiter.py  →  rate_limiter.py.solution
 
 Python przestaje ten plik importować, więc piszesz własną wersję od zera. Stary plik zostaje obok jako ściąga: otwierasz go dopiero wtedy, gdy utkniesz.
 
-Dotyczy to modułów w `python-week1/src/python_week1/` (implementacja i testy). Zostaw `pyproject.toml`, `uv.lock` i pliki danych (`users.json`).
+Dotyczy to modułów w `introduction/src/introduction/` (implementacja i testy). Zostaw `pyproject.toml`, `uv.lock` i pliki danych (`users.json`).
 
 Potem idź dzień po dniu. Teoria jest na początku dnia, zadania na końcu.
 
 ## Wymagania
 
-- Python 3.14 (`python-week1/.python-version`)
+- Python 3.14 (`introduction/.python-version`)
 - [uv](https://docs.astral.sh/uv/getting-started/installation/)
 
-Z katalogu `python-week1`:
+Z katalogu `introduction`:
 
 ```bash
 uv sync
-uv run python-week1
+uv run introduction
 ```
 
 `uv run` używa lokalnego `.venv`. Osobna aktywacja środowiska nie jest potrzebna.
@@ -43,7 +43,7 @@ Tam, gdzie pomaga porównanie ze światem TypeScript, notatki je podają. Celem 
 
 ## Tydzień 1 — język i narzędzia
 
-Projekt: `python-week1/`.
+Projekt: `introduction/`.
 
 | Dzień | Temat |
 | --- | --- |
@@ -55,7 +55,7 @@ Projekt: `python-week1/`.
 | 6 | Mini-CLI spinające poprzednie dni |
 | 7 | Code review i Pyright w trybie strict |
 
-Pełna kontrola z katalogu `python-week1` (dzień 7):
+Pełna kontrola z katalogu `introduction` (dzień 7):
 
 ```bash
 uv run ruff check .
@@ -65,6 +65,8 @@ uv run pytest
 ```
 
 ## Tydzień 2 — API, baza, testy
+
+Projekt: `mini-jira/`. Tygodnie 3–6 kontynuujesz w tym katalogu.
 
 Budujesz REST API (mini-Jira): FastAPI, SQLAlchemy 2.0, Alembic, testy integracyjne i Docker. Projekt stawiasz w dniu 8, według notatek.
 

@@ -1,6 +1,6 @@
 # Tydzień 6: Systemy Rozproszone, Asynchroniczne AI & Production Operations
 
-W ostatnim tygodniu włączysz stworzone moduły AI do dojrzałej architektury systemowej z kolejkami, streamingiem SSE oraz pełnym monitoringiem.
+W ostatnim tygodniu włączysz stworzone moduły AI do dojrzałej architektury systemowej z kolejkami, streamingiem SSE oraz pełnym monitoringiem. Dalej pracujesz w katalogu `mini-jira` z Tygodnia 2.
 
 ---
 

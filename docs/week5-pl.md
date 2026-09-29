@@ -1,6 +1,6 @@
 # Tydzień 5: Agentic Architecture & Tool Calling (Architektury Agentowe)
 
-W tym tygodniu przekształcisz lokalny model z "rozmówcy" w **autonomicznego agenta**, który potrafi samodzielnie korzystać z Twojego kodu: odpytywać bazy danych, wywoływać API, uruchamiać skrypty i podejmować decyzje w pętli.
+W tym tygodniu przekształcisz lokalny model z "rozmówcy" w **autonomicznego agenta**, który potrafi samodzielnie korzystać z Twojego kodu: odpytywać bazy danych, wywoływać API, uruchamiać skrypty i podejmować decyzje w pętli. Dalej pracujesz w katalogu `mini-jira` z Tygodnia 2.
 
 ---
 

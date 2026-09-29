@@ -1,6 +1,6 @@
 Python became the default language for AI work because of a mature ecosystem (`pydantic`, `httpx`, `asyncio`), first-class support in agent frameworks, and straightforward integration with ML and C++ runtimes.
 
-Here is the plan for **Weeks 4, 5, and 6**, tied to the backend stack you already have. You will call a **local model through an OpenAI-compatible REST API**: Ollama at `http://localhost:11434/v1`, or LM Studio at `http://localhost:1234/v1`.
+Here is the plan for **Weeks 4, 5, and 6**, tied to the backend stack you already have. Keep working in the `mini-jira` directory from Week 2. You will call a **local model through an OpenAI-compatible REST API**: Ollama at `http://localhost:11434/v1`, or LM Studio at `http://localhost:1234/v1`.
 
 You go from basic LLM integration, through structured validation and RAG, to an autonomous agent.
 

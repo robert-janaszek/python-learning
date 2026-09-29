@@ -1,6 +1,6 @@
 # Week 3: Observability, Application Architecture, and Background Processes
 
-This week focuses on solutions used at production scale: inter-system communication, asynchronous background task processing (queues), structured logging, and clean layered architecture in Python.
+This week focuses on solutions used at production scale: inter-system communication, asynchronous background task processing (queues), structured logging, and clean layered architecture in Python. Keep working in the `mini-jira` directory from Week 2.
 
 ---
 

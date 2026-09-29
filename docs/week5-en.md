@@ -1,6 +1,6 @@
 # Week 5: Agentic Architecture and Tool Calling
 
-This week you turn the local model from a chatbot into an **autonomous agent** that can use your code: query databases, call APIs, run scripts, and decide what to do next inside a loop.
+This week you turn the local model from a chatbot into an **autonomous agent** that can use your code: query databases, call APIs, run scripts, and decide what to do next inside a loop. Keep working in the `mini-jira` directory from Week 2.
 
 ---
 

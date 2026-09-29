@@ -1,6 +1,6 @@
 # Tydzień 3: Observability, Architektura Aplikacji i Procesy Tła
 
-W tym tygodniu skupiamy się na rozwiązaniach używanych w skali produkcyjnej: komunikacji międzysystemowej, asynchronicznym przetwarzaniu zadań w tle (kolejki), strukturyzowanym logowaniu oraz czystej architekturze warstwowej w Pythonie.
+W tym tygodniu skupiamy się na rozwiązaniach używanych w skali produkcyjnej: komunikacji międzysystemowej, asynchronicznym przetwarzaniu zadań w tle (kolejki), strukturyzowanym logowaniu oraz czystej architekturze warstwowej w Pythonie. Dalej pracujesz w katalogu `mini-jira` z Tygodnia 2.
 
 ---
 

@@ -1,6 +1,6 @@
 Python stał się absolutnym standardem w świecie AI ze względu na dojrzały ekosystem (`pydantic`, `httpx`, `asyncio`), natywne wsparcie w frameworkach agentowych oraz możliwość bezszwowej integracji ze środowiskami ML/C++.
 
-Oto plan na **Tygodnie 4, 5 i 6**, powiązany z Twoim dotychczasowym backendowym stackiem. Zakładamy pracę z **lokalnym modelem przez REST API zgodne z OpenAI**: Ollama pod `http://localhost:11434/v1` albo LM Studio pod `http://localhost:1234/v1`.
+Oto plan na **Tygodnie 4, 5 i 6**, powiązany z Twoim dotychczasowym backendowym stackiem. Dalej pracujesz w katalogu `mini-jira` z Tygodnia 2. Zakładamy pracę z **lokalnym modelem przez REST API zgodne z OpenAI**: Ollama pod `http://localhost:11434/v1` albo LM Studio pod `http://localhost:1234/v1`.
 
 Przejdziemy od podstawowych integracji LLM, przez zaawansowaną walidację struktur i RAG, po budowę autonomicznego agenta.
 

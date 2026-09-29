@@ -9,11 +9,11 @@ Everything below is a language crib for **today**. Exercises are at the end of t
 ### 1. Environment setup
 
 - Install `uv` (if you do not have it yet): `curl -LsSf https://astral.sh/uv/install.sh | sh`
-- Initialize the project: `uv init python-week1 && cd python-week1`
+- Initialize the project: `uv init introduction && cd introduction`
 - Add Ruff: `uv add --dev ruff`
 - Linter and formatter: `uv run ruff check .` and `uv run ruff format .`
-- Run the code: `uv run python-week1` (from the `python-week1` directory). This calls `python_week1:main` from `pyproject.toml`. `uv run` uses the local `.venv`; you do not need to activate it by hand.
-- `uv run python -m python_week1` will do nothing until the package has a `__main__.py`, or `main()` is invoked on import.
+- Run the code: `uv run introduction` (from the `introduction` directory). This calls `introduction.__main__:main` from `pyproject.toml`. `uv run` uses the local `.venv`; you do not need to activate it by hand.
+- `uv run python -m introduction` will do nothing until the package has a `__main__.py`, or `main()` is invoked on import.
 
 ---
 
@@ -333,7 +333,7 @@ Expected: `{1: 30, 2: 110}`.
 
 Expected: `{1: 150, 2: 110}`.
 
-Check: `uv run python-week1` from the `python-week1` directory.
+Check: `uv run introduction` from the `introduction` directory.
 
 ---
 
@@ -572,7 +572,7 @@ The function’s arguments follow it: `to_thread(slow_label, "water")` means `sl
 
 ### Introduction to `pytest`
 
-A test is a function named `test_...` in a file named `test_*.py`. `pytest` collects them on its own. Run it from the `python-week1` directory: `uv run pytest`. An assertion is a plain `assert`. A false result fails the test and shows the values on both sides of the comparison.
+A test is a function named `test_...` in a file named `test_*.py`. `pytest` collects them on its own. Run it from the `introduction` directory: `uv run pytest`. An assertion is a plain `assert`. A false result fails the test and shows the values on both sides of the comparison.
 
 A fixture prepares an object before the test. `@pytest.fixture` sits above a `def`, the same way as the decorators from Day 3. The test receives the fixture’s result through an argument of the same name. By default the fixture runs again before every test that asks for it.
 
@@ -651,7 +651,7 @@ async def test_pause() -> None:
 
 ### Introduction to the CLI, files, and JSON
 
-`uv run python-week1` calls `main()`. Extra words after the command land in `sys.argv`. `argparse` reads them and reports an error when a required argument is missing.
+`uv run introduction` calls `main()`. Extra words after the command land in `sys.argv`. `argparse` reads them and reports an error when a required argument is missing.
 
 ```python
 import argparse
@@ -666,7 +666,7 @@ def main() -> None:
     print(text)
 ```
 
-Invocation: `uv run python-week1 notes.txt`. `Path.read_text` returns the whole file as a `str`. `Path.write_text` replaces the file with the given text.
+Invocation: `uv run introduction notes.txt`. `Path.read_text` returns the whole file as a `str`. `Path.write_text` replaces the file with the given text.
 
 `json.loads` turns JSON text into Python objects. A JSON array becomes a `list`, a JSON object becomes a `dict`. `json.dumps` goes the other way: from a Python object to text.
 
@@ -698,7 +698,7 @@ A single JSON object that should match a Pydantic model goes in as text to `mode
 
 ### Introduction to strict mode
 
-Pyright in strict mode reads annotations and rejects places where the type could be anything. In `python-week1/pyproject.toml`:
+Pyright in strict mode reads annotations and rejects places where the type could be anything. In `introduction/pyproject.toml`:
 
 ```toml
 [tool.pyright]
@@ -729,7 +729,7 @@ def shout(name: str | None) -> str:
 
 `Any` turns checking off at that spot. Strict mode still lets you write it, and the exercise tells you to remove those spots: the argument, the result, and the attribute get a concrete type.
 
-The four commands from the `python-week1` directory check different things. `ruff check` looks for style mistakes and obvious bugs. `ruff format --check` compares the file layout with the formatter and changes nothing. `pyright` checks types. `pytest` runs the tests.
+The four commands from the `introduction` directory check different things. `ruff check` looks for style mistakes and obvious bugs. `ruff format --check` compares the file layout with the formatter and changes nothing. `pyright` checks types. `pytest` runs the tests.
 
 1. Enable strict type checking in `pyproject.toml` for Pyright (`typeCheckingMode = "strict"`) or Mypy (`strict = true`).
 2. Review the Day 6 code and eliminate all typing warnings (missing `None`, `Any` types, `Optional` mismatches).
