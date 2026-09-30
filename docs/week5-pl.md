@@ -39,12 +39,11 @@ tools = [{
 
 ### 2. Zadania na dzisiaj
 
-1. Zdefiniuj dwie funkcje Pythonowe w kodzie (np. `add_task_to_jira` oraz `search_db`).
-2. Stwórz pętlę wywołań:
-* Wyślij zapytanie do lokalnego LLM wraz ze schematem narzędzi.
-* Odczytaj `tool_calls` z odpowiedzi modelu.
-* Wykonaj odpowiadającą funkcję w kodzie Python.
-* Wyślij wynik wykonania funkcji z powrotem do LLM, aby wygenerował ostateczną odpowiedź dla użytkownika.
+1. W `mini_jira/agent.py` dwie funkcje na istniejącej bazie `app.db` (modele `ProjectModel` i `TaskModel`):
+
+   * `list_projects() -> list[str]` — nazwy projektów.
+   * `create_task(project_name: str, title: str, priority: Literal["low", "medium", "high"]) -> int` — dopisuje zadanie do projektu i zwraca jego `id`.
+2. Pętla na jednym zdaniu: „Dodaj do projektu Backend zadanie «Napraw login» z priorytetem high”. Jeśli projektu nie ma, skrypt zakłada go przed pętlą. Wyślij zdanie i schemat obu funkcji do lokalnego modelu, wykonaj `tool_calls` w Pythonie, odeślij wynik narzędzia i wypisz końcową odpowiedź asystenta. W bazie ma zostać zadanie o tym tytule i priorytecie.
 
 
 
@@ -63,9 +62,15 @@ Wzorzec **ReAct (Reason + Act)** to algorytm, w którym agent działa w pętli `
 
 ### 2. Zadania na dzisiaj
 
-1. Napisz własną pętlę `while` w Pythonie bez zewnętrznych frameworków agentowych.
-2. Stwórz agenta, który dostaje skomplikowane zadanie (np. "Znajdź projekt X, policz ile ma zadań i wygeneruj podsumowanie") i rozwiązuje je, wykonując po kolei 3 różne funkcje Pythonowe w pętli.
-3. Dodaj zabezpieczenie (Max Iterations Limit = 5), aby agent z powodu błędnego wnioskowania lokalnego modelu nie wpadł w nieskończoną pętlę.
+1. W tym samym `agent.py` pętla `while`, bez LangGraph i innych frameworków.
+2. Przed uruchomieniem skrypt wstawia projekt „Backend” z trzema zadaniami, jeśli ich nie ma: dwa otwarte z priorytetem high („Napraw login”, „Padł deploy”) i jedno ukończone low („Opis README”). Agent dostaje jedno polecenie: „Znajdź projekt Backend, policz otwarte zadania i podaj, ile z nich ma priorytet high”. Do odpowiedzi dochodzi trzema funkcjami:
+
+   * `find_project(name: str) -> int`
+   * `list_open_tasks(project_id: int) -> list[str]` — tytuły, gdzie `is_completed` jest false
+   * `count_by_priority(project_id: int) -> dict[str, int]` — liczby dla low, medium i high wśród otwartych
+
+   Sens odpowiedzi: dwa otwarte, oba high.
+3. Po 5 iteracjach pętla się kończy i zwraca komunikat, że limit kroków został osiągnięty.
 
 ---
 
@@ -80,8 +85,8 @@ Agent bez pamięci traci kontekst przy każdym żądaniu HTTP. Historię rozmowy
 
 ### 2. Zadania na dzisiaj
 
-1. Zapisuj i odczytuj historię wiadomości agenta dla `session_id` w `app.db`.
-2. Zaimplementuj okno pamięci (Memory Truncation) – gdy historia przekroczy N tokenów (ta sama jednostka co chunki RAG z dnia 25), podsumuj najstarsze tury lokalnym LLM i zapisz skrót w tej samej tabeli.
+1. Migracja Alembic: tabela `agent_messages` z kolumnami `id`, `session_id` (str), `role` (`system`, `user`, `assistant`, `tool`), `content`, `created_at`. Agent z dnia 30 zapisuje tam każdą turę i przy starcie wczytuje wiersze danego `session_id`. Dwa uruchomienia z tym samym `session_id`. Pierwsze: polecenie z dnia 30. Drugie, już bez nazwy projektu: „A ile z nich było high?”. Drugie dochodzi do „dwa” z historii w `app.db`.
+2. Okno: gdy treść historii przekroczy około 2000 znaków (cztery fragmenty po ~500 znaków z dnia 25), najstarsze tury idą do lokalnego modelu po skrót. Skrót zapisujesz w tej samej tabeli jako wiersz `role=system`, treść od „Skrót:”. Do następnego promptu wchodzi skrót i tury, które zostały.
 
 ---
 
@@ -98,8 +103,8 @@ Pisanie skomplikowanych grafów decyzyjnych od zera bywa uciążliwe. **LangGrap
 ### 2. Zadania na dzisiaj
 
 1. Zainstaluj LangGraph: `uv add langgraph`.
-2. Zbuduj prosty graf złożony z 2 węzłów: Węzeł 1 (Agent Planujący), Węzeł 2 (Agent Wykonujący).
-3. Podłącz graf pod lokalne API OpenAI.
+2. Graf o dwóch węzłach na stanie z polami `plan: str` i `answer: str`. Węzeł `plan` pyta lokalny model, którą funkcję z dnia 30 wywołać jako pierwszą dla polecenia „Znajdź projekt Backend i podaj liczbę otwartych zadań high”. Węzeł `execute` odpala tę funkcję na `app.db` i wpisuje `answer`.
+3. Ten sam `base_url` co w dniu 22. Uruchom graf i wypisz `answer`. Sens odpowiedzi: dwa.
 
 ---
 
@@ -115,8 +120,8 @@ Zamiast tworzyć jednego "wszechwiedzącego" agenta, stosuje się wyspecjalizowa
 
 ### 2. Zadania na dzisiaj
 
-1. Stwórz pipeline: Agent Programista pisze kod Python na podstawie zadania, Agent Tester ten kod czyta i zwraca uwagi (błąd, brakujący przypadek). Tester jeszcze nie uruchamia kodu — odpalanie jest w dniu 34.
-2. Pozwól agentom na 2 wymiany: programista poprawia kod na podstawie uwag testera.
+1. Dwa wywołania lokalnego modelu, jeszcze bez uruchamiania kodu. Programista dostaje specyfikację: funkcja `open_high_tasks(tasks: list[dict]) -> list[str]` zwraca tytuły, gdzie `priority` to `high` i `is_completed` to false. Tester czyta kod i oddaje listę uwag: zły warunek, brakujące pole albo zmiana wejścia.
+2. Druga tura: programista dostaje te uwagi i zwraca poprawiony kod. Zostaw obie wersje w zmiennych i wypisz uwagi testera. Uruchomienie kodu jest w dniu 34.
 
 ---
 
@@ -131,13 +136,17 @@ Dawanie agentowi możliwości uruchamiania dowolnego kodu Python na Twoim lokaln
 ### 2. Zadania na dzisiaj
 
 1. Zainstaluj bibliotekę Docker dla Pythona: `uv add docker`.
-2. Napisz bezpieczny runner w Pythonie, który przyjmuje kod od LLM, uruchamia go w tymczasowym, pozbawionym sieci kontenerze Docker (`python:3.12-slim`), przechwytuje `stdout`/`stderr` i zwraca wynik do agenta.
-3. Podłącz ten runner jako narzędzie Agenta Testera z dnia 33. Uwagi testera mają wynikać z `stdout`/`stderr`, nie tylko z czytania kodu.
+2. Runner bierze kod od modelu i startuje tymczasowy kontener `python:3.12-slim` bez sieci, z limitem 10 sekund. Po biegu kontener jest usuwany. Do kodu runner dokleja wywołanie `open_high_tasks` na trzech słownikach: otwarte high „Napraw login”, ukończone high „Stary bug”, otwarte low „Opis”. Zwraca `stdout` i `stderr`.
+3. Tester z dnia 33 woła ten runner. Uwaga ma cytować `stdout` albo `stderr`. Do zobaczenia: funkcja, która zwraca też ukończone high — w `stdout` jest „Stary bug”, tester to zgłasza.
 
 ---
 
 ## Dzień 35: Podsumowanie Tygodnia 5
 
-Masz w pełni funkcjonalnego, bezpiecznego agenta, który potrafi używać narzędzi, ma pamięć i działa na lokalnym modelu.
+Sprawdź agenta na danych projektu Backend z dnia 30:
+
+1. Polecenie o otwartych zadaniach high kończy się liczbą dwa, a w `app.db` widać ślad wywołań narzędzi.
+2. Drugie pytanie w tej samej sesji („A ile z nich było high?”) korzysta z `agent_messages`.
+3. Tester odpala `open_high_tasks` w kontenerze i uwaga powołuje się na `stdout`.
 
 ---

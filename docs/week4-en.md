@@ -54,9 +54,11 @@ async def stream_response(prompt: str):
 
 ### 1. Introduction and Concepts
 
-Parsing JSON from an LLM by hand breaks easily. **Instructor** (or native structured outputs) wraps the OpenAI client and forces the local model to return validated Pydantic models.
+Parsing JSON from an LLM by hand breaks easily. **Instructor** wraps the OpenAI client from Day 22 and returns a validated Pydantic model.
 
-* **Automatic retry:** If the LLM emits invalid JSON or breaks a Pydantic rule, Instructor sends the validation error back to the model and asks for a fix.
+The example uses `Mode.JSON`: the server is asked for valid JSON, and the schema plus validation stay on Instructor's side. This mode works on Ollama and in LM Studio. Native structured outputs, where the server follows a JSON Schema while generating, are better wherever the endpoint honors them. This day does not assume that.
+
+* **Retry:** catches a bad value inside valid JSON, for example a `@field_validator` rule. Instructor sends the validation error back to the model and asks for a fix.
 
 ```python
 import instructor
@@ -88,8 +90,17 @@ async def extract_data(text: str) -> UserExtraction:
 ### 2. Tasks for today
 
 1. Install Instructor: `uv add instructor`.
-2. Write a parser for system logs or unstructured emails: take raw text and make the local model return a validated Pydantic model (for example ticket priority, an extracted email, and a list of tags).
-3. Add a `@field_validator` to the Pydantic model and watch Instructor push the LLM to repair the answer when validation fails.
+2. In `ticket_parser.py`, write `parse_ticket(text: str) -> TicketDraft`. The inputs are two or three emails you store as `str` constants in the same file. No inbox, no files, and no external API. Each email is loose text: who is writing, what the issue is, and sometimes a priority in words ("urgent", "this can wait").
+
+   `TicketDraft` has:
+
+   * `title: str` — a short ticket title
+   * `sender_email: str` — the address taken from the text
+   * `priority: Literal["low", "medium", "high"]`
+   * `tags: list[str]` — a few short labels, for example the topic of the issue
+
+   Run the function on each email and print the model it returns. Write one email clearly and another messily, without the address on its own line, so you can see what the model pulls from context.
+3. Add a `@field_validator` on `sender_email`: the value must contain `@` and a dot in the part after `@`. Run `parse_ticket` on the email that has no address, with `max_retries=3`. The first attempt shows a validation error sent back to the model, then a repaired answer or the retries running out.
 
 ---
 
@@ -124,9 +135,18 @@ results = table.search([0.1, 0.2, 0.3]).limit(1).to_list()
 
 ### 2. Tasks for today
 
-1. Install an embedded vector database: `uv add lancedb`.
-2. Embed a few sentences (local OpenAI `/v1/embeddings`, or `sentence-transformers`).
-3. Store the vectors with metadata in LanceDB and run a semantic search (searching for "programming" should find the text about Python).
+1. Install the database: `uv add lancedb`.
+2. In `mini_jira/knowledge.py`, store six sentences as constants. Five describe mini-jira, and one is from another domain so search has a misleading neighbor:
+
+   * A project groups tasks.
+   * A task has a title and belongs to one project.
+   * A task priority is exactly low, medium, or high.
+   * A completed task has is_completed set to true.
+   * Chat returns tokens as a stream.
+   * Coffee is brewed at 90 degrees.
+
+   Embed each sentence with the Day 22 client, endpoint `/v1/embeddings`. Keep the embedding model name in `llm_client.py`.
+3. Store the rows in LanceDB, directory `./.lancedb`, table `notes`, columns `text` and `vector`. The query "what values can a task priority take" must return the sentence about low, medium, and high as the first hit. Print that text.
 
 ---
 
@@ -146,8 +166,8 @@ RAG gives the local LLM context retrieved from your private knowledge base, whic
 
 ### 2. Tasks for today
 
-1. Write a script that loads a text file (for example internal project docs), splits it into chunks of about 128 tokens, and stores them in the vector database from Day 24. Without a tokenizer, cut on ~500 characters — roughly the same 128 tokens (about 4 characters per token).
-2. Add a FastAPI `POST /qa` endpoint that embeds the user's question, runs semantic search, and returns a local-LLM answer grounded in the retrieved quotes.
+1. Add `mini-jira/knowledge/help.txt`: at least eight short paragraphs about projects and tasks. Two sentences must appear in it: "A task priority is exactly low, medium, or high." and "A completed task has is_completed set to true and is no longer open." The other paragraphs are also about tasks, and they do not repeat that rule. The script `python -m mini_jira.index_help` reads the file, cuts it at about 500 characters (roughly 128 tokens, about 4 characters per token), and stores the chunks in table `help_chunks` (columns `text`, `vector`) in the `./.lancedb` directory from Day 24.
+2. Endpoint `POST /qa`. Body: `{"question": str}`. Response: `{"answer": str, "quotes": list[str]}`, where `quotes` are the texts of the three nearest chunks. The question "What values can priority take?" must list low, medium, and high in `answer`, and `quotes` must include the `help.txt` chunk that says so.
 
 ---
 
@@ -161,8 +181,8 @@ Vector search returns chunks that are semantically close, and those are not alwa
 
 ### 2. Tasks for today
 
-1. Extend your local RAG search with a reranker.
-2. Compare how relevant the local LLM's answers are before and after reranking.
+1. Add a reranker to `POST /qa`. `uv add sentence-transformers`. Model: `cross-encoder/ms-marco-MiniLM-L-6-v2`. Fetch 8 chunks from LanceDB first, then the reranker orders them from most to least relevant, and the prompt receives the first 3.
+2. Compare on one question: "Does a completed task stay on the open list?". Print the order of the eight chunks before reranking and after it, then the two model answers: from the first three vector hits, and from the first three after reranking.
 
 ---
 
@@ -179,12 +199,19 @@ Ordinary tests use `assert a == b`. An LLM answer is different every run. AI app
 ### 2. Tasks for today
 
 1. Install an eval framework: `uv add deepeval`.
-2. Write `pytest` tests that run your RAG pipeline and use the local LLM to check that the answers are not hallucinated.
+2. In `src/mini_jira/tests/test_qa.py`, two tests call the same pipeline as `POST /qa` (the function, not the HTTP server). The judge is the Day 22 local model, the same `base_url`, with no cloud API key. Metrics: Faithfulness and Answer Relevancy, threshold 0.7.
+
+   * "What values can priority take?" — the answer must stay with the chunk about low, medium, and high.
+   * "What is the support phone number?" — that sentence is not in `help.txt`. The answer must say the materials do not contain it.
 
 ---
 
 ## Day 28: Week 4 Review
 
-Wire the LLM clients, Pydantic models, vector database, and tests into one fully offline module inside your backend project.
+Check that the `mini-jira` module works offline, on the local model:
+
+1. `POST /qa` asked about priority returns low, medium, and high, plus a quote from `help.txt`.
+2. `parse_ticket` from Day 23 still returns a `TicketDraft` for an email stored in the file.
+3. `uv run pytest src/mini_jira/tests/test_qa.py` passes with Ollama or LM Studio running.
 
 ---

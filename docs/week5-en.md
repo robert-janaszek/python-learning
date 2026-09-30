@@ -39,12 +39,11 @@ tools = [{
 
 ### 2. Tasks for today
 
-1. Define two Python functions (for example `add_task_to_jira` and `search_db`).
-2. Build the call loop:
-* Send the user request to the local LLM together with the tool schemas.
-* Read `tool_calls` from the model response.
-* Run the matching Python function.
-* Send the function result back to the LLM so it can write the final answer for the user.
+1. In `mini_jira/agent.py`, two functions on the existing `app.db` (`ProjectModel` and `TaskModel`):
+
+   * `list_projects() -> list[str]` — project names.
+   * `create_task(project_name: str, title: str, priority: Literal["low", "medium", "high"]) -> int` — adds a task to the project and returns its `id`.
+2. One sentence drives the loop: "Add a task «Fix login» with priority high to the Backend project." If that project is missing, the script creates it before the loop. Send the sentence and both function schemas to the local model, run the `tool_calls` in Python, send the tool result back, and print the assistant's final answer. The database must contain a task with that title and priority.
 
 
 
@@ -63,9 +62,15 @@ tools = [{
 
 ### 2. Tasks for today
 
-1. Write your own `while` loop in Python, with no agent framework.
-2. Build an agent that receives a multi-step task (for example "Find project X, count its tasks, and write a summary") and solves it by calling three different Python functions in sequence.
-3. Add a guard (max iterations = 5) so a bad local-model decision cannot spin forever.
+1. In the same `agent.py`, a `while` loop, with no LangGraph or other framework.
+2. Before the run, the script inserts a project named "Backend" with three tasks when they are missing: two open tasks with priority high ("Fix login", "Deploy failed") and one completed low task ("README blurb"). The agent gets one instruction: "Find the Backend project, count its open tasks, and say how many of them have priority high." It reaches the answer through three functions:
+
+   * `find_project(name: str) -> int`
+   * `list_open_tasks(project_id: int) -> list[str]` — titles where `is_completed` is false
+   * `count_by_priority(project_id: int) -> dict[str, int]` — counts of low, medium, and high among open tasks
+
+   The answer means: two open tasks, both high.
+3. After 5 iterations the loop stops and returns a message that the step limit was reached.
 
 ---
 
@@ -80,8 +85,8 @@ An agent with no memory forgets the conversation on every HTTP request. Store th
 
 ### 2. Tasks for today
 
-1. Save and load the agent's messages for a `session_id` in `app.db`.
-2. Add a memory window (memory truncation): when the history passes N tokens (the same unit as the RAG chunks from Day 25), summarize the oldest turns with the local LLM and store that summary in the same table.
+1. An Alembic migration adds table `agent_messages` with columns `id`, `session_id` (str), `role` (`system`, `user`, `assistant`, `tool`), `content`, and `created_at`. The Day 30 agent writes every turn there and loads the rows for that `session_id` on startup. Two runs share one `session_id`. The first is the Day 30 instruction. The second drops the project name: "And how many of them were high?". The second reaches "two" from the history in `app.db`.
+2. Window: once the history text passes about 2000 characters (four of the ~500-character chunks from Day 25), the oldest turns go to the local model for a summary. Store the summary in the same table as a `role=system` row whose content starts with "Summary:". The next prompt receives the summary and the turns that remain.
 
 ---
 
@@ -98,8 +103,8 @@ Hand-rolled decision graphs get painful. **LangGraph** is the current Python def
 ### 2. Tasks for today
 
 1. Install LangGraph: `uv add langgraph`.
-2. Build a two-node graph: node 1 is a planning agent, node 2 is an executing agent.
-3. Point the graph at your local OpenAI-compatible API.
+2. A two-node graph whose state has `plan: str` and `answer: str`. Node `plan` asks the local model which Day 30 function to call first for "Find the Backend project and report the number of open high-priority tasks." Node `execute` runs that function on `app.db` and writes `answer`.
+3. The same `base_url` as Day 22. Run the graph and print `answer`. The answer means two.
 
 ---
 
@@ -115,8 +120,8 @@ Instead of one agent that does everything, use small specialized roles:
 
 ### 2. Tasks for today
 
-1. Build a pipeline: a programmer agent writes Python for the task, and a tester agent reads that code and returns comments (a bug, a missing case). The tester does not run the code yet — execution is Day 34.
-2. Let the agents exchange two rounds: the programmer fixes the code from the tester's comments.
+1. Two calls to the local model, with no code execution yet. The programmer receives a spec: `open_high_tasks(tasks: list[dict]) -> list[str]` returns titles where `priority` is `high` and `is_completed` is false. The tester reads the code and returns comments: a wrong condition, a missing field, or a change to the input.
+2. Second turn: the programmer receives those comments and returns fixed code. Keep both versions in variables and print the tester's comments. Running the code is Day 34.
 
 ---
 
@@ -131,13 +136,17 @@ Letting an agent run arbitrary Python on your machine is a serious risk (prompt 
 ### 2. Tasks for today
 
 1. Install the Docker library: `uv add docker`.
-2. Write a Python runner that takes code from the LLM, starts a temporary network-less container (`python:3.12-slim`), captures `stdout` / `stderr`, and returns the result to the agent.
-3. Attach this runner as a tool of the tester agent from Day 33. The tester's comments should come from `stdout` / `stderr`, not only from reading the source.
+2. The runner takes the model's code and starts a temporary `python:3.12-slim` container with no network and a 10-second limit. The container is removed after the run. The runner appends a call to `open_high_tasks` on three dicts: open high "Fix login", completed high "Old bug", open low "Blurb". It returns `stdout` and `stderr`.
+3. The Day 33 tester calls this runner. A comment must quote `stdout` or `stderr`. The case to see: a function that also returns completed high tasks — `stdout` contains "Old bug", and the tester reports that.
 
 ---
 
 ## Day 35: Week 5 Review
 
-You now have a working, sandboxed agent that can call tools, keep memory, and run on a local model.
+Check the agent against the Backend project data from Day 30:
+
+1. The instruction about open high-priority tasks ends with the number two, and `app.db` shows a trace of the tool calls.
+2. A second question in the same session ("And how many of them were high?") uses `agent_messages`.
+3. The tester runs `open_high_tasks` in a container, and the comment cites `stdout`.
 
 ---

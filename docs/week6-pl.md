@@ -14,8 +14,9 @@ Lokalne modele LLM są wolne i zasobożerne (generowanie odpowiedzi może trwać
 
 ### 2. Zadania na dzisiaj
 
-1. Zintegruj stworzonego agenta z workerem ARQ (z Tygodnia 3).
-2. Utwórz endpoint `POST /agent/tasks`, który przyjmuje trudne zadanie, natychmiast zwraca `task_id`, a agent wykonuje pracę w tle na lokalnym LLM.
+1. Worker ARQ z tygodnia 3 wykonuje pętlę agenta z dnia 30.
+2. `POST /agent/tasks`, body `{"session_id": str, "message": str}`, odpowiedź od razu `{"task_id": str}` ze statusem 202. Wiersz ląduje w nowej tabeli `agent_jobs` (`id`, `session_id`, `message`, `status`, `answer`). Status na starcie: `pending`.
+3. `GET /agent/tasks/{task_id}` zwraca `{"status": "pending" | "done" | "failed", "answer": str | null}`. Dla wiadomości „ile otwartych zadań high ma projekt Backend” po chwili `status` to `done`, a `answer` mówi o dwóch.
 
 ---
 
@@ -51,7 +52,13 @@ async def stream_ai_reply():
 ### 2. Zadania na dzisiaj
 
 1. Zainstaluj wsparcie dla SSE: `uv add sse-starlette`.
-2. Stwórz endpoint w FastAPI (`EventSourceResponse` z `sse-starlette`), który przesyła w czasie rzeczywistym zarówno tokeny z lokalnego LLM, jak i statusy wywoływanych narzędzi (np. zdarzenie `tool_called` i dane `{"name": "search_db"}`).
+2. `GET /agent/stream` z query `session_id` i `message`, odpowiedź przez `EventSourceResponse`. To ta sama pętla agenta, wołana w tym żądaniu. Zdarzenia:
+
+   * `token` — kolejny kawałek tekstu odpowiedzi
+   * `tool_called` — `{"name": "<nazwa funkcji>"}` w momencie wywołania narzędzia, na przykład `find_project`
+   * `done` — koniec
+
+   Dla wiadomości o projekcie Backend w strumieniu ma pojawić się `tool_called`, zanim przyjdą tokeny końcowej liczby.
 
 ---
 
@@ -65,9 +72,9 @@ W tradycyjnym backendzie śledzisz zapytania SQL. W aplikacjach AI musisz śledz
 
 ### 2. Zadania na dzisiaj
 
-1. Uruchom w Dockerze lokalną instancję Phoenixa lub Langfuse (`docker run -p 6006:6006 arizephoenix/phoenix`).
-2. Podłącz OpenTelemetry w Pythonie pod klienta OpenAI / Instructor / LangGraph.
-3. Wykonaj kilka zapytań do agenta i przejrzyj pełne drzewo wywołań (Trace Tree) w lokalnym panelu kontrolnym.
+1. Uruchom Phoenixa: `docker run -p 6006:6006 arizephoenix/phoenix`. Panel: http://localhost:6006.
+2. Oprzyrządowanie klienta OpenAI z dnia 22: każde `chat.completions.create` i `embeddings.create` jest spanem. Wywołanie narzędzia agenta to span potomny z nazwą funkcji. Instructor i graf z dnia 32 używają tego samego klienta, więc wpadają w te spany.
+3. Jedno `POST /qa` o priorytet i jedno polecenie agenta o projekcie Backend. W panelu widać prompt, nazwę narzędzia i fragment z `help.txt`.
 
 ---
 
@@ -106,14 +113,12 @@ Zaprojektowanie i połączenie wszystkich zdobytych umiejętności w jeden kompl
 
 ### 2. Zadania na dzisiaj
 
-1. Zaprojektuj i zaimplementuj końcowy system backendowy w Pythonie:
-* **FastAPI** jako bramka API z walidacją Pydantic v2.
-* **SSE** do streamingu odpowiedzi do klienta.
-* **ARQ + Redis** do asynchronicznych zadań AI w tle.
-* **SQLite (`app.db`) + SQLAlchemy 2.0** do użytkowników i historii rozmów. Ta sama baza co w Tygodniu 2.
-* **LanceDB** jako wbudowana baza wektorowa do RAG.
-* **Lokalny LLM** z interfejsem OpenAI do napędzania Agenta i RAG-a.
-* **Structlog + OpenTelemetry** dla monitoringu całego systemu.
+1. Złóż to, co już jest w `mini-jira`, w jedną ścieżkę. Tabele zostają te z wcześniejszych dni: `projects`, `tasks`, `agent_messages`, `agent_jobs`.
+
+   * `POST /qa` z pytaniem „Jakie wartości ma priority?” zwraca low, medium, high i cytat z `help.txt`.
+   * `POST /agent/tasks` z wiadomością o otwartych high w projekcie Backend zwraca `task_id`, a `GET` po chwili podaje dwa.
+   * `GET /agent/stream` dla tej samej wiadomości wysyła `tool_called`, potem tokeny.
+   * W Phoenixie oba wywołania mają trace: prompt oraz narzędzie albo fragment RAG.
 
 
 
@@ -127,8 +132,8 @@ Tworzenie obrazów kontenerowych dla aplikacji AI wymaga dbałości o rozmiar i 
 
 ### 2. Zadania na dzisiaj
 
-1. Zbuduj wieloetapowy `Dockerfile` z użyciem `uv`, który instaluje tylko zależności produkcyjne.
-2. Zbuduj plik `docker-compose.yml`, który jednym poleceniem (`docker compose up`) stawia API, Redis, workera i tracing. SQLite (`app.db`) i LanceDB to pliki aplikacji, nie osobne kontenery.
+1. `Dockerfile` wieloetapowy, z `uv`. W końcowym obrazie zostają zależności produkcyjne. Proces: `uvicorn mini_jira.main:app`.
+2. `docker-compose.yml`: serwis `api` (ten obraz), Redis, worker ARQ (ten sam obraz, inna komenda) i Phoenix. Wolumeny na `app.db` i `.lancedb`. Po `docker compose up` `POST /qa` o priorytet zwraca odpowiedź z cytatem.
 
 ---
 

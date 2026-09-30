@@ -54,9 +54,11 @@ async def stream_response(prompt: str):
 
 ### 1. Wprowadzenie i Koncepty
 
-Ręczne parsowanie JSON-a zwróconego przez LLM jest podatne na błędy. Biblioteka **Instructor** (albo natywne Structured Outputs) opakowuje klienta OpenAI i wymusza na lokalnym modelu zwracanie danych jako zwalidowanych modeli Pydantic.
+Ręczne parsowanie JSON-a zwróconego przez LLM jest podatne na błędy. **Instructor** opakowuje klienta OpenAI z Dnia 22 i zwraca zwalidowany model Pydantic.
 
-* **Automatyczne Retry:** Jeśli LLM wygeneruje niepoprawny JSON lub złamie regułę walidacji Pydantic, Instructor automatycznie wyśle błąd walidacji z powrotem do LLM z prośbą o poprawkę.
+Przykład używa `Mode.JSON`: serwer ma oddać poprawny JSON, a schemat i walidacja zostają po stronie Instructora. Ten tryb działa na Ollamie i w LM Studio. Natywne structured outputs, gdzie serwer trzyma się JSON Schema już w trakcie generowania, są lepsze tam, gdzie endpoint je honoruje. Tutaj ich nie zakładamy.
+
+* **Retry:** łapie złą wartość przy poprawnym JSON-ie, na przykład regułę z `@field_validator`. Instructor odsyła błąd walidacji do modelu i prosi o poprawkę.
 
 ```python
 import instructor
@@ -88,8 +90,17 @@ async def extract_data(text: str) -> UserExtraction:
 ### 2. Zadania na dzisiaj
 
 1. Zainstaluj `instructor`: `uv add instructor`.
-2. Napisz parser logów systemowych lub nieustrukturyzowanych e-maili: przyjmij tekst wejściowy i zmuś lokalny model do zwrócenia zwalidowanego modelu Pydantic (np. priorytet zgłoszenia, wyciągnięty e-mail, lista powiązanych tagów).
-3. Dodaj `@field_validator` do modelu Pydantic i przetestuj, jak Instructor zmusza LLM do poprawy odpowiedzi przy błędzie.
+2. W module `ticket_parser.py` napisz funkcję `parse_ticket(text: str) -> TicketDraft`. Danymi wejściowymi są dwa albo trzy maile, które wpisujesz jako stałe `str` w tym samym pliku. Bez skrzynki, plików i zewnętrznego API. Każdy mail to luźny tekst: kto pisze, czego dotyczy sprawa, czasem priorytet słowami („pilne”, „może poczekać”).
+
+   Model `TicketDraft`:
+
+   * `title: str` — krótki tytuł zgłoszenia
+   * `sender_email: str` — adres wyciągnięty z tekstu
+   * `priority: Literal["low", "medium", "high"]`
+   * `tags: list[str]` — kilka krótkich etykiet, na przykład temat sprawy
+
+   Uruchom funkcję na każdym mailu i wypisz zwrócony model. Jeden mail napisz wyraźnie, drugi chaotycznie, bez adresu w jednej linijce, żeby było widać, co model wyciąga z kontekstu.
+3. Na polu `sender_email` dodaj `@field_validator`: wartość ma zawierać `@` i kropkę w części za `@`. Uruchom `parse_ticket` na mailu bez adresu, z `max_retries=3`. Przy pierwszej próbie widać błąd walidacji odesłany do modelu, potem poprawioną odpowiedź albo wyczerpanie prób.
 
 ---
 
@@ -124,9 +135,18 @@ results = table.search([0.1, 0.2, 0.3]).limit(1).to_list()
 
 ### 2. Zadania na dzisiaj
 
-1. Zainstaluj bezobsługową bazę wektorową: `uv add lancedb`.
-2. Wygeneruj wektory dla kilku zdań (używając lokalnego API OpenAI `/v1/embeddings` lub biblioteki `sentence-transformers`).
-3. Zapisz wektory wraz z meta-danymi do bazy LanceDB i przeprowadź wyszukiwanie semantyczne (np. szukając "programowanie" znajdź tekst o "Pythonie").
+1. Zainstaluj bazę: `uv add lancedb`.
+2. W `mini_jira/knowledge.py` wpisz sześć zdań jako stałe. Pięć opisuje mini-jira, jedno jest z innej dziedziny, żeby wyszukiwanie miało mylący trop:
+
+   * Projekt grupuje zadania.
+   * Zadanie ma tytuł i należy do jednego projektu.
+   * Priorytet zadania to dokładnie low, medium albo high.
+   * Ukończone zadanie ma is_completed równe true.
+   * Czat zwraca tokeny strumieniem.
+   * Kawa parzy się w 90 stopniach.
+
+   Każde zdanie zamień na wektor klientem z dnia 22, endpoint `/v1/embeddings`. Nazwę modelu embeddingów trzymaj w `llm_client.py`.
+3. Zapisz wiersze w LanceDB, katalog `./.lancedb`, tabela `notes`, kolumny `text` i `vector`. Zapytanie „jakie wartości ma priorytet zadania” ma zwrócić zdanie o low, medium i high jako pierwszy wynik. Wypisz ten tekst.
 
 ---
 
@@ -146,8 +166,8 @@ RAG polega na dostarczeniu lokalnemu modelowi LLM kontekstu wyszukanego z Twojej
 
 ### 2. Zadania na dzisiaj
 
-1. Stwórz skrypt, który wczytuje plik tekstowy (np. dokumentację wewnętrzną projektu), tnie go na fragmenty po ok. 128 tokenach i zapisuje je w bazie wektorowej z Dnia 24. Bez tokenizera tnij po ~500 znakach — to zgrubnie te same 128 tokenów (ok. 4 znaki na token).
-2. Stwórz endpoint w FastAPI `POST /qa`, który na podstawie pytania użytkownika robi wyszukiwanie semantyczne i zwraca odpowiedź z lokalnego LLM podpartą znalezionymi cytatami z dokumentu.
+1. Dopisz plik `mini-jira/knowledge/help.txt`: co najmniej osiem krótkich akapitów o projektach i zadaniach. W środku mają paść dwa zdania: „Priorytet zadania to dokładnie low, medium albo high.” oraz „Ukończone zadanie ma is_completed równe true i nie jest już otwarte.” Pozostałe akapity też są o zadaniach, ale tej reguły nie powtarzają. Skrypt `python -m mini_jira.index_help` czyta plik, tnie po około 500 znakach (zgrubnie 128 tokenów, około 4 znaki na token) i zapisuje fragmenty w tabeli `help_chunks` (kolumny `text`, `vector`) w `./.lancedb` z dnia 24.
+2. Endpoint `POST /qa`. Body: `{"question": str}`. Odpowiedź: `{"answer": str, "quotes": list[str]}`, a `quotes` to teksty trzech najbliższych fragmentów. Pytanie „Jakie wartości ma priority?” ma w `answer` wymienić low, medium i high, a w `quotes` fragment z `help.txt`, który to mówi.
 
 ---
 
@@ -161,8 +181,8 @@ Wyszukiwanie wektorowe zwraca fragmenty podobne znaczeniowo, ale nie zawsze te, 
 
 ### 2. Zadania na dzisiaj
 
-1. Rozbuduj wyszukiwanie w swoim lokalnym RAG o reranker.
-2. Porównaj trafność odpowiedzi lokalnego LLM przed rerankingiem i po nim.
+1. Do `POST /qa` dołóż reranker. `uv add sentence-transformers`. Model: `cross-encoder/ms-marco-MiniLM-L-6-v2`. Najpierw weź 8 fragmentów z LanceDB, potem reranker układa je od najbardziej do najmniej trafnego i do promptu idą pierwsze 3.
+2. Porównanie na jednym pytaniu: „Czy ukończone zadanie zostaje na liście otwartych?”. Wypisz kolejność ośmiu fragmentów przed rerankingiem i po nim, potem dwie odpowiedzi modelu: z trzech pierwszych fragmentów wektorowych i z trzech pierwszych po rerankingu.
 
 ---
 
@@ -181,12 +201,19 @@ W tradycyjnym kodzie używasz `assert a == b`. W aplikacjach opartych na LLM odp
 ### 2. Zadania na dzisiaj
 
 1. Zainstaluj framework do ewaluacji: `uv add deepeval`.
-2. Napisz testy w `pytest`, które uruchamiają Twój pipeline RAG i używają lokalnego LLM do sprawdzenia, czy wygenerowane odpowiedzi nie zawierają halucynacji.
+2. W `src/mini_jira/tests/test_qa.py` dwa testy wołają ten sam pipeline co `POST /qa` (funkcję, nie serwer HTTP). Sędzia to lokalny model z dnia 22, ten sam `base_url`, bez klucza chmurowego. Metryki: Faithfulness i Answer Relevancy, próg 0.7.
+
+   * „Jakie wartości ma priority?” — odpowiedź ma trzymać się fragmentu o low, medium i high.
+   * „Jaki jest numer telefonu supportu?” — tego zdania nie ma w `help.txt`. Odpowiedź ma powiedzieć, że w materiałach tego nie ma.
 
 ---
 
 ## Dzień 28: Przegląd Tygodnia 4 i Podsumowanie
 
-Połącz klientów LLM, Pydantic, bazę wektorową oraz testy w jeden działający w pełni offline moduł w Twoim projekcie backendowym.
+Sprawdź, że moduł w `mini-jira` działa offline, na lokalnym modelu:
+
+1. `POST /qa` z pytaniem o priorytet zwraca low, medium i high oraz cytat z `help.txt`.
+2. `parse_ticket` z dnia 23 nadal zwraca `TicketDraft` dla maila wpisanego w pliku.
+3. `uv run pytest src/mini_jira/tests/test_qa.py` przechodzi przy włączonym Ollama albo LM Studio.
 
 ---

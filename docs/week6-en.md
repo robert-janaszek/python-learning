@@ -14,8 +14,9 @@ Local LLMs are slow and heavy (a reply can take several seconds to more than a m
 
 ### 2. Tasks for today
 
-1. Connect the agent you built to the ARQ worker from Week 3.
-2. Add `POST /agent/tasks`. It accepts a hard task, returns a `task_id` immediately, and the agent does the work in the background on the local LLM.
+1. The ARQ worker from Week 3 runs the Day 30 agent loop.
+2. `POST /agent/tasks`, body `{"session_id": str, "message": str}`, returns `{"task_id": str}` immediately with status 202. The row goes into a new table `agent_jobs` (`id`, `session_id`, `message`, `status`, `answer`). Starting status: `pending`.
+3. `GET /agent/tasks/{task_id}` returns `{"status": "pending" | "done" | "failed", "answer": str | null}`. For the message "how many open high-priority tasks does the Backend project have", `status` becomes `done` after a short wait, and `answer` says two.
 
 ---
 
@@ -51,7 +52,13 @@ async def stream_ai_reply():
 ### 2. Tasks for today
 
 1. Add SSE support: `uv add sse-starlette`.
-2. Build a FastAPI endpoint (`EventSourceResponse` from `sse-starlette`) that streams both local-LLM tokens and tool status (for example an event named `tool_called` with data `{"name": "search_db"}`).
+2. `GET /agent/stream` with query params `session_id` and `message`, answered by `EventSourceResponse`. This is the same agent loop, called inside this request. Events:
+
+   * `token` — the next piece of the reply
+   * `tool_called` — `{"name": "<function name>"}` when a tool runs, for example `find_project`
+   * `done` — the end
+
+   For the Backend project message, the stream must emit `tool_called` before the tokens of the final number.
 
 ---
 
@@ -65,9 +72,9 @@ On a normal backend you trace SQL. On an AI app you also need the **exact prompt
 
 ### 2. Tasks for today
 
-1. Run Phoenix or Langfuse locally in Docker (`docker run -p 6006:6006 arizephoenix/phoenix`).
-2. Attach OpenTelemetry in Python to the OpenAI client, Instructor, and LangGraph.
-3. Send a few requests through the agent and inspect the full trace tree in the local UI.
+1. Run Phoenix: `docker run -p 6006:6006 arizephoenix/phoenix`. UI: http://localhost:6006.
+2. Instrument the Day 22 OpenAI client: every `chat.completions.create` and `embeddings.create` is a span. An agent tool call is a child span named after the function. Instructor and the Day 32 graph use that same client, so they land in these spans.
+3. One `POST /qa` about priority and one agent instruction about the Backend project. The UI shows the prompt, the tool name, and a chunk from `help.txt`.
 
 ---
 
@@ -106,14 +113,12 @@ Design one system that uses everything from the course, and implement it as a si
 
 ### 2. Tasks for today
 
-1. Design and implement the final Python backend:
-* **FastAPI** as the API gateway, with Pydantic v2 validation.
-* **SSE** to stream replies to the client.
-* **ARQ + Redis** for background AI jobs.
-* **SQLite (`app.db`) + SQLAlchemy 2.0** for users and conversation history. The same database as in Week 2.
-* **LanceDB** as the embedded vector store for RAG.
-* A **local LLM** behind an OpenAI-compatible API, driving the agent and RAG.
-* **Structlog + OpenTelemetry** for system-wide observability.
+1. Wire what `mini-jira` already has into one path. The tables stay the ones from earlier days: `projects`, `tasks`, `agent_messages`, `agent_jobs`.
+
+   * `POST /qa` with "What values can priority take?" returns low, medium, and high, plus a quote from `help.txt`.
+   * `POST /agent/tasks` with a message about open high-priority tasks in the Backend project returns a `task_id`, and the later `GET` reports two.
+   * `GET /agent/stream` for that same message sends `tool_called`, then tokens.
+   * In Phoenix both calls have a trace: the prompt, and either a tool or a RAG chunk.
 
 
 
@@ -127,8 +132,8 @@ AI container images need a small, locked-down production stage (no compiler tool
 
 ### 2. Tasks for today
 
-1. Write a multi-stage `Dockerfile` that uses `uv` and installs production dependencies only.
-2. Write a `docker-compose.yml` that brings up the API, Redis, the worker, and tracing with one command (`docker compose up`). SQLite (`app.db`) and LanceDB are files in the app, not separate containers.
+1. A multi-stage `Dockerfile` using `uv`. The final image keeps production dependencies. Process: `uvicorn mini_jira.main:app`.
+2. `docker-compose.yml`: an `api` service (that image), Redis, an ARQ worker (the same image, a different command), and Phoenix. Volumes for `app.db` and `.lancedb`. After `docker compose up`, `POST /qa` about priority returns an answer with a quote.
 
 ---
 
