@@ -1,0 +1,10 @@
+From: laura@company.com
+To: robert@company.com
+Subject: Incident with payment
+
+Hi Rob,
+
+I think we have outage with payment module. Please investigate.
+
+Thanks,
+Laura
