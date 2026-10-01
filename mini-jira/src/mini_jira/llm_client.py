@@ -30,3 +30,10 @@ async def get_response(prompt: str):
         stream=False,
     )
     return response
+
+async def get_embedding(prompt: str) -> list[float]:
+    response = await client.embeddings.create(
+        input=prompt,
+        model="text-embedding-qwen3-embedding-0.6b"
+    )
+    return response.data[0].embedding
