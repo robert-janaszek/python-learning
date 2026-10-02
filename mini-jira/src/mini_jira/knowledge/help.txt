@@ -1,0 +1,29 @@
+A project groups related tasks. Each project has a name and may include a short description of the work.
+A task has a title and belongs to exactly one project. The title is required and should say what needs to be done.
+Every task stores the id of its project. Moving a task means assigning it to a different project.
+A task priority is exactly low, medium, or high.
+A completed task has is_completed set to true and is no longer open.
+New tasks start as work still in progress. You add them from inside a project.
+The project page lists the tasks that belong to that project. Each row shows the task title.
+You can rename a task by changing its title. The task stays in the same project unless you move it.
+Before you remove a project, decide where its tasks should go. A task cannot exist without a project.
+Create a project with a name. The description is optional and is meant for people reading the project, not as a lookup key. Keep the description short.
+The project list returns each project's id, name, and created_at, plus task_count. task_count is how many tasks are linked to that project. An empty project is allowed, so task_count can be zero.
+created_at is set when the project is created. Later edits to the name or description do not change that timestamp.
+Two projects may use similar names. The id is what identifies a project. Always pass that id when you add a task or read a project's tasks.
+A task is created on a project. The request carries the project id in the path and the task title in the body. If that project id does not exist, creation fails and the error says the project was not found.
+Each task has its own id, separate from the project id. Use the task id when you look up or update that task. A missing task id fails with task not found.
+One project holds many tasks. Each task points back to a single project. That is a one-to-many link, stored as project_id on the task.
+Write titles that name the work. "Fix login timeout" is clearer than "Bug". The title is indexed, so a specific phrase is easier to find later.
+Do not put secrets, passwords, or access tokens in a task title or a project description. Those fields are plain text shown in lists.
+The project list is the home view. Open a project to see only the tasks that belong to it. Tasks from other projects stay on their own projects.
+Renaming a project does not move its tasks. The tasks keep the same project id. Only changing that id moves a task.
+You can add several tasks to the same project in any order. The list does not sort them by title unless you ask it to. Creation order is the default.
+A project description can mention the goal, the owner, or the deadline. It does not replace task titles. Put the actual work on the tasks.
+If you are unsure which project a task belongs to, check project_id on the task. Do not guess from the title. Titles are not unique across projects.
+Deleting is not the same as moving. Moving keeps the task and changes its project. Removing a project leaves its tasks without a home, so move them first.
+Task ids and project ids are numbers assigned by the database. Do not invent them in the client. Read the id from the create response and reuse it.
+The list of projects is enough to see where work lives. task_count tells you which projects are busy and which are still empty.
+A task title can be edited after creation. The task id stays the same, and the project id stays the same unless you move the task.
+When a create call fails because the project is missing, create the project first, read its id from the response, then create the task with that id.
+Projects and tasks are the only records in this help. Chat, mail, and ticket drafts are separate features and are not described here.
