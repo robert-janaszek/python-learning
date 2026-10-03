@@ -10,6 +10,55 @@ from mini_jira.llm_client import get_embedding
 
 db = lancedb.connect("./.lancedb")
 
+def find_chunk_break_position(string: str, last: bool = False) -> int:
+    search = string.rfind if last else string.find
+
+    for char in ("\n", ".", " "):
+        position = search(char)
+        if position != -1:
+            return position
+
+    return -1
+
+def chunk_text(text: str) -> list[str]:
+    chunk_size = 500
+    break_search_length = 210
+
+    chunks: list[str] = []
+
+    start = 0
+
+    while start < len(text):
+        if start + chunk_size >= len(text):
+            chunks.append(text[start:])
+            break
+
+        nominal = start + chunk_size
+        window = text[nominal:nominal + break_search_length]
+        rel = find_chunk_break_position(window)
+
+        if rel >= 0:
+            cut = nominal + rel
+            chunk_end = cut + 1
+        else:
+            cut = nominal
+            chunk_end = cut
+
+        chunks.append(text[start:chunk_end])
+
+        if cut >= len(text) - 1:
+            break
+
+        rel = find_chunk_break_position(text[start:cut], last=True)
+        next_start = start + rel + 1 if rel >= 0 else cut + 1
+
+        if next_start <= start:
+            next_start = cut + 1
+
+        start = next_start
+
+    return chunks
+
 async def load_help():
     table_name = HelpChunksModel.__tablename__
     existing = db.list_tables().tables or []
@@ -20,11 +69,7 @@ async def load_help():
 
     help_text = (Path(__file__).parent / "help.txt").read_text()
 
-    chunk_size = 500
-    overlap = 50
-    stride = chunk_size - overlap
-
-    chunks = [help_text[i:i + chunk_size] for i in range(0, len(help_text), stride)]
+    chunks = chunk_text(help_text)
 
     data: list[HelpChunksModel] = []
     for chunk in chunks:
