@@ -11,7 +11,10 @@ from sentence_transformers import CrossEncoder
 db = lancedb.connect("./.lancedb")
 
 def sort_by_cross_encoder(question: str, chunks: list[str]) -> list[str]:
-    model = CrossEncoder('cross-encoder/ms-marco-MiniLM-L6-v2')
+    model = CrossEncoder(
+        'cross-encoder/ms-marco-MiniLM-L6-v2',
+        local_files_only=True,
+    )
 
     scores = model.predict([(question, chunk) for chunk in chunks])  # pyright: ignore[reportUnknownMemberType]
 
