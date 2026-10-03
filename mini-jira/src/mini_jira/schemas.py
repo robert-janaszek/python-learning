@@ -28,3 +28,10 @@ class TaskResponse(BaseModel):
 
 class ChatPrompt(BaseModel):
     prompt: str
+
+class Question(BaseModel):
+    question: str
+
+class QaResponse(BaseModel):
+    answer: str
+    quotes: list[str]
