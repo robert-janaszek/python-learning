@@ -181,7 +181,7 @@ Vector search returns chunks that are semantically close, and those are not alwa
 
 ### 2. Tasks for today
 
-1. Add a reranker to `POST /qa`. `uv add sentence-transformers`. Model: `cross-encoder/ms-marco-MiniLM-L-6-v2`. Fetch 8 chunks from LanceDB first, then the reranker orders them from most to least relevant, and the prompt receives the first 3.
+1. Add a reranker to `POST /qa`. `uv add sentence-transformers`. Model: `cross-encoder/ms-marco-MiniLM-L6-v2`. Fetch 8 chunks from LanceDB first, then the reranker orders them from most to least relevant, and the prompt receives the first 3.
 2. Compare on one question: "Does a completed task stay on the open list?". Print the order of the eight chunks before reranking and after it, then the two model answers: from the first three vector hits, and from the first three after reranking.
 
 ---

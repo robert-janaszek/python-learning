@@ -181,7 +181,7 @@ Wyszukiwanie wektorowe zwraca fragmenty podobne znaczeniowo, ale nie zawsze te, 
 
 ### 2. Zadania na dzisiaj
 
-1. Do `POST /qa` dołóż reranker. `uv add sentence-transformers`. Model: `cross-encoder/ms-marco-MiniLM-L-6-v2`. Najpierw weź 8 fragmentów z LanceDB, potem reranker układa je od najbardziej do najmniej trafnego i do promptu idą pierwsze 3.
+1. Do `POST /qa` dołóż reranker. `uv add sentence-transformers`. Model: `cross-encoder/ms-marco-MiniLM-L6-v2`. Najpierw weź 8 fragmentów z LanceDB, potem reranker układa je od najbardziej do najmniej trafnego i do promptu idą pierwsze 3.
 2. Porównanie na jednym pytaniu: „Czy ukończone zadanie zostaje na liście otwartych?”. Wypisz kolejność ośmiu fragmentów przed rerankingiem i po nim, potem dwie odpowiedzi modelu: z trzech pierwszych fragmentów wektorowych i z trzech pierwszych po rerankingu.
 
 ---
