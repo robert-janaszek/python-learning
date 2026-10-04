@@ -10,7 +10,7 @@ W tym tygodniu przekształcisz lokalny model z "rozmówcy" w **autonomicznego ag
 
 Nowoczesne modele LLM potrafią zwrócić specjalny obiekt JSON mówiący: *"Nie mam odpowiedzi w mojej wiedzy, ale proszę uruchom dla mnie funkcję `get_weather(city='Warsaw')` i daj mi jej wynik"*.
 
-* **Tool Definition:** Schemat funkcji wygenerowany automatycznie na podstawie type hintów i docstringów w Pythonie.
+* **Tool definition:** Osobny schemat JSON. Model widzi tylko jego: nazwę, opis i parametry. Funkcja Pythona zostaje u Ciebie. Łączy je pole `name`.
 
 ```python
 # Definicja narzędzia w kodzie Python
@@ -35,15 +35,32 @@ tools = [{
     },
 }]
 
+response = await client.chat.completions.create(
+    model="llama3",
+    messages=[{"role": "user", "content": "Jakie saldo ma użytkownik 7?"}],
+    tools=tools,
+)
+
+import json
+
+tool_call = response.choices[0].message.tool_calls[0]
+name = tool_call.function.name
+arguments = json.loads(tool_call.function.arguments)
+
+if name == "get_user_balance":
+    result = get_user_balance(**arguments)
+
 ```
+
+Klient dostaje listę schematów w argumencie `tools`. Nie dostaje funkcji. Gdy model chce narzędzia, odpowiedź ma `tool_calls` zamiast zwykłej treści. Po `name` wybierasz funkcję, argumenty bierzesz z JSON-a, wołasz ją sam i w kolejnej turze odsyłasz wynik jako wiadomość `role="tool"`.
 
 ### 2. Zadania na dzisiaj
 
-1. W `mini_jira/agent.py` dwie funkcje na istniejącej bazie `app.db` (modele `ProjectModel` i `TaskModel`):
+1. Napisz w `mini_jira/agent.py` dwie funkcje na istniejącej bazie `app.db` (modele `ProjectModel` i `TaskModel`):
 
    * `list_projects() -> list[str]` — nazwy projektów.
-   * `create_task(project_name: str, title: str, priority: Literal["low", "medium", "high"]) -> int` — dopisuje zadanie do projektu i zwraca jego `id`.
-2. Pętla na jednym zdaniu: „Dodaj do projektu Backend zadanie «Napraw login» z priorytetem high”. Jeśli projektu nie ma, skrypt zakłada go przed pętlą. Wyślij zdanie i schemat obu funkcji do lokalnego modelu, wykonaj `tool_calls` w Pythonie, odeślij wynik narzędzia i wypisz końcową odpowiedź asystenta. W bazie ma zostać zadanie o tym tytule i priorytecie.
+   * `create_task(project_name: str, title: str, priority: Literal["low", "medium", "high"]) -> str` — dopisuje zadanie do projektu. Zwraca zdanie: powstało zadanie o podanym `id` albo opis błędu, na przykład brak projektu albo priorytet spoza `low`, `medium` i `high`. Samo `id` nie mówi, czy zapis się udał.
+2. Pętla na jednym zdaniu: „Dodaj do projektu Backend zadanie «Napraw login» z priorytetem critical”. `critical` celowo leży poza `low`, `medium` i `high`. Model ma poradzić sobie z tą niejednoznacznością: dopytać, odmówić albo wybrać dozwoloną wartość. Wyślij zdanie i schemat obu funkcji do lokalnego modelu, wykonaj `tool_calls` w Pythonie, odeślij wynik narzędzia i wypisz końcową odpowiedź asystenta. Gdy zadanie powstanie, w bazie ma mieć tytuł z polecenia i priorytet z dozwolonego zbioru.
 
 
 

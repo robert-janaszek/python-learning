@@ -10,7 +10,7 @@ This week you turn the local model from a chatbot into an **autonomous agent** t
 
 Modern LLMs can return a JSON object that means: *"I cannot answer this from my own knowledge — please run `get_weather(city='Warsaw')` and give me the result."*
 
-* **Tool definition:** A function schema built from Python type hints and docstrings.
+* **Tool definition:** A separate JSON schema. The model sees only that schema: the name, the description, and the parameters. The Python function stays in your code. The `name` field links the two.
 
 ```python
 # Tool implemented in Python
@@ -35,15 +35,32 @@ tools = [{
     },
 }]
 
+response = await client.chat.completions.create(
+    model="llama3",
+    messages=[{"role": "user", "content": "What is the balance of user 7?"}],
+    tools=tools,
+)
+
+import json
+
+tool_call = response.choices[0].message.tool_calls[0]
+name = tool_call.function.name
+arguments = json.loads(tool_call.function.arguments)
+
+if name == "get_user_balance":
+    result = get_user_balance(**arguments)
+
 ```
+
+The client receives the list of schemas in the `tools` argument. It does not receive the function. When the model wants a tool, the response contains `tool_calls` instead of ordinary text. You choose the function by `name`, read the arguments from the JSON, call the function yourself, and on the next turn send the result back as a message with `role="tool"`.
 
 ### 2. Tasks for today
 
-1. In `mini_jira/agent.py`, two functions on the existing `app.db` (`ProjectModel` and `TaskModel`):
+1. Write two functions in `mini_jira/agent.py` that use the existing `app.db` (`ProjectModel` and `TaskModel`):
 
    * `list_projects() -> list[str]` — project names.
-   * `create_task(project_name: str, title: str, priority: Literal["low", "medium", "high"]) -> int` — adds a task to the project and returns its `id`.
-2. One sentence drives the loop: "Add a task «Fix login» with priority high to the Backend project." If that project is missing, the script creates it before the loop. Send the sentence and both function schemas to the local model, run the `tool_calls` in Python, send the tool result back, and print the assistant's final answer. The database must contain a task with that title and priority.
+   * `create_task(project_name: str, title: str, priority: Literal["low", "medium", "high"]) -> str` — adds a task to the project. It returns a sentence: the task was created with the given `id`, or a description of the error, such as a missing project or a priority outside `low`, `medium`, and `high`. An `id` alone does not say whether the write succeeded.
+2. One sentence drives the loop: "Add a task «Fix login» with priority critical to the Backend project." `critical` is deliberately outside `low`, `medium`, and `high`. The model has to handle that ambiguity: ask, refuse, or pick an allowed value. Send the sentence and both function schemas to the local model, run the `tool_calls` in Python, send the tool result back, and print the assistant's final answer. If a task is created, the database must contain the title from the instruction and a priority from the allowed set.
 
 
 
