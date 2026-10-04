@@ -58,9 +58,9 @@ The client receives the list of schemas in the `tools` argument. It does not rec
 
 1. Write two functions in `mini_jira/agent.py` that use the existing `app.db` (`ProjectModel` and `TaskModel`):
 
-   * `list_projects() -> list[str]` — project names.
-   * `create_task(project_name: str, title: str, priority: Literal["low", "medium", "high"]) -> str` — adds a task to the project. It returns a sentence: the task was created with the given `id`, or a description of the error, such as a missing project or a priority outside `low`, `medium`, and `high`. An `id` alone does not say whether the write succeeded.
-2. One sentence drives the loop: "Add a task «Fix login» with priority critical to the Backend project." `critical` is deliberately outside `low`, `medium`, and `high`. The model has to handle that ambiguity: ask, refuse, or pick an allowed value. Send the sentence and both function schemas to the local model, run the `tool_calls` in Python, send the tool result back, and print the assistant's final answer. If a task is created, the database must contain the title from the instruction and a priority from the allowed set.
+   * `list_projects() -> list[dict]` — `id` and `name` of each project. The name is not unique, so `name` alone does not identify a row.
+   * `create_task(project_id: int, title: str, priority: Literal["low", "medium", "high"]) -> str` — adds a task to the project with that `id`. It returns a sentence: the task was created with the given `id`, or a description of the error, such as no project with that `id` or a priority outside `low`, `medium`, and `high`. The task `id` alone does not say whether the write succeeded.
+2. One sentence drives the loop: "Add a task «Fix login» with priority critical to the Backend project." The model turns the name "Backend" into an `id` through `list_projects`, and `create_task` receives that `project_id`. `critical` is deliberately outside `low`, `medium`, and `high`. The model has to handle that ambiguity: ask, refuse, or pick an allowed value. Send the sentence and both function schemas to the local model, run the `tool_calls` in Python, send the tool result back, and print the assistant's final answer. If a task is created, the database must contain the title from the instruction and a priority from the allowed set.
 
 
 
@@ -82,7 +82,7 @@ The client receives the list of schemas in the `tools` argument. It does not rec
 1. In the same `agent.py`, a `while` loop, with no LangGraph or other framework.
 2. Before the run, the script inserts a project named "Backend" with three tasks when they are missing: two open tasks with priority high ("Fix login", "Deploy failed") and one completed low task ("README blurb"). The agent gets one instruction: "Find the Backend project, count its open tasks, and say how many of them have priority high." It reaches the answer through three functions:
 
-   * `find_project(name: str) -> int`
+   * `find_project(name: str) -> int | str` — returns the `id` when exactly one project has that name. When none match, or more than one does, it returns an error description.
    * `list_tasks(project_id: int, status: Literal["open", "completed", "all"] = "all") -> list[dict]` — title, priority, and `is_completed`. The `status` argument selects open, completed, or all tasks.
    * `count_by_priority(project_id: int, status: Literal["open", "completed", "all"] = "all") -> dict[str, int]` — counts of low, medium, and high among tasks with the given `status`.
 

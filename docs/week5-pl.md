@@ -58,9 +58,9 @@ Klient dostaje listę schematów w argumencie `tools`. Nie dostaje funkcji. Gdy 
 
 1. Napisz w `mini_jira/agent.py` dwie funkcje na istniejącej bazie `app.db` (modele `ProjectModel` i `TaskModel`):
 
-   * `list_projects() -> list[str]` — nazwy projektów.
-   * `create_task(project_name: str, title: str, priority: Literal["low", "medium", "high"]) -> str` — dopisuje zadanie do projektu. Zwraca zdanie: powstało zadanie o podanym `id` albo opis błędu, na przykład brak projektu albo priorytet spoza `low`, `medium` i `high`. Samo `id` nie mówi, czy zapis się udał.
-2. Pętla na jednym zdaniu: „Dodaj do projektu Backend zadanie «Napraw login» z priorytetem critical”. `critical` celowo leży poza `low`, `medium` i `high`. Model ma poradzić sobie z tą niejednoznacznością: dopytać, odmówić albo wybrać dozwoloną wartość. Wyślij zdanie i schemat obu funkcji do lokalnego modelu, wykonaj `tool_calls` w Pythonie, odeślij wynik narzędzia i wypisz końcową odpowiedź asystenta. Gdy zadanie powstanie, w bazie ma mieć tytuł z polecenia i priorytet z dozwolonego zbioru.
+   * `list_projects() -> list[dict]` — `id` i `name` każdego projektu. Nazwa nie jest unikalna, więc samo `name` nie wskazuje wiersza.
+   * `create_task(project_id: int, title: str, priority: Literal["low", "medium", "high"]) -> str` — dopisuje zadanie do projektu o podanym `id`. Zwraca zdanie: powstało zadanie o podanym `id` albo opis błędu, na przykład brak projektu o tym `id` albo priorytet spoza `low`, `medium` i `high`. Samo `id` zadania nie mówi, czy zapis się udał.
+2. Pętla na jednym zdaniu: „Dodaj do projektu Backend zadanie «Napraw login» z priorytetem critical”. Nazwę „Backend” model zamienia na `id` przez `list_projects`, a `create_task` dostaje już `project_id`. `critical` celowo leży poza `low`, `medium` i `high`. Model ma poradzić sobie z tą niejednoznacznością: dopytać, odmówić albo wybrać dozwoloną wartość. Wyślij zdanie i schemat obu funkcji do lokalnego modelu, wykonaj `tool_calls` w Pythonie, odeślij wynik narzędzia i wypisz końcową odpowiedź asystenta. Gdy zadanie powstanie, w bazie ma mieć tytuł z polecenia i priorytet z dozwolonego zbioru.
 
 
 
@@ -82,7 +82,7 @@ Wzorzec **ReAct (Reason + Act)** to algorytm, w którym agent działa w pętli `
 1. W tym samym `agent.py` pętla `while`, bez LangGraph i innych frameworków.
 2. Przed uruchomieniem skrypt wstawia projekt „Backend” z trzema zadaniami, jeśli ich nie ma: dwa otwarte z priorytetem high („Napraw login”, „Padł deploy”) i jedno ukończone low („Opis README”). Agent dostaje jedno polecenie: „Znajdź projekt Backend, policz otwarte zadania i podaj, ile z nich ma priorytet high”. Do odpowiedzi dochodzi trzema funkcjami:
 
-   * `find_project(name: str) -> int`
+   * `find_project(name: str) -> int | str` — przy jednym projekcie o tej nazwie zwraca jego `id`. Przy braku projektu albo przy kilku o tej samej nazwie zwraca opis błędu.
    * `list_tasks(project_id: int, status: Literal["open", "completed", "all"] = "all") -> list[dict]` — tytuł, priorytet i `is_completed`. Argument `status` wybiera otwarte, ukończone albo wszystkie.
    * `count_by_priority(project_id: int, status: Literal["open", "completed", "all"] = "all") -> dict[str, int]` — liczby dla low, medium i high wśród zadań o podanym `status`.
 
