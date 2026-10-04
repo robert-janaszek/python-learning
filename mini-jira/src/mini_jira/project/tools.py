@@ -3,9 +3,9 @@ from openai.types.chat import ChatCompletionToolParam
 from mini_jira.project.service import ProjectService
 
 def make_list_projects(project_service: ProjectService):
-    async def list_projects() -> list[str]:
+    async def list_projects() -> list[dict[str, int | str]]:
         projects = await project_service.get_projects()
-        return [project.name for project in projects]
+        return [{ "id": project.id, "name": project.name } for project in projects]
 
     tool: ChatCompletionToolParam = {
         "type": "function",

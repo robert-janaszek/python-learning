@@ -116,8 +116,8 @@ async def run_agentic_loop():
                 tool_messages = await handle_tool_call(response_message, tools_by_name)
                 messages.extend(tool_messages)
                 
-            if response_message.content:
-                print(response_message.content)
+            if response_message.content and response_message.content.strip():
+                print(response_message.content.strip())
 
 
 if __name__ == "__main__":
