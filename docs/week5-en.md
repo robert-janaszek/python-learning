@@ -83,10 +83,10 @@ The client receives the list of schemas in the `tools` argument. It does not rec
 2. Before the run, the script inserts a project named "Backend" with three tasks when they are missing: two open tasks with priority high ("Fix login", "Deploy failed") and one completed low task ("README blurb"). The agent gets one instruction: "Find the Backend project, count its open tasks, and say how many of them have priority high." It reaches the answer through three functions:
 
    * `find_project(name: str) -> int`
-   * `list_open_tasks(project_id: int) -> list[str]` — titles where `is_completed` is false
-   * `count_by_priority(project_id: int) -> dict[str, int]` — counts of low, medium, and high among open tasks
+   * `list_tasks(project_id: int, status: Literal["open", "completed", "all"] = "all") -> list[dict]` — title, priority, and `is_completed`. The `status` argument selects open, completed, or all tasks.
+   * `count_by_priority(project_id: int, status: Literal["open", "completed", "all"] = "all") -> dict[str, int]` — counts of low, medium, and high among tasks with the given `status`.
 
-   The answer means: two open tasks, both high.
+   For this instruction both calls use `status="open"`. The answer means: two open tasks, both high.
 3. After 5 iterations the loop stops and returns a message that the step limit was reached.
 
 ---
