@@ -1,11 +1,12 @@
 from datetime import datetime
 from typing import Protocol
-from mini_jira.schemas import ProjectCreate
 from sqlalchemy import Row, func, insert, select
 
 from mini_jira.models import ProjectModel, TaskModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from collections.abc import Sequence
+
+from mini_jira.project.schemas import ProjectCreate
 
 class ProjectRepositoryProtocol(Protocol):
     async def create_project(self, payload: ProjectCreate) -> tuple[int, datetime]: ...

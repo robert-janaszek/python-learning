@@ -2,9 +2,10 @@ from typing import Literal
 from fastapi import status as http_status
 from mini_jira.exception import DomainException
 from mini_jira.project.repository import ProjectRepositoryProtocol
-from mini_jira.schemas import TaskCreate, TaskResponse
 from mini_jira.task.repository import TaskRepositoryProtocol
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from mini_jira.task.schemas import TaskCreate, TaskResponse
 
 
 class TaskService:

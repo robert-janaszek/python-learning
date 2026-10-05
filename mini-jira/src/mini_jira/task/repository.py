@@ -1,9 +1,10 @@
 from typing import Protocol, Sequence
 
 from mini_jira.models import TaskModel
-from mini_jira.schemas import TaskCreate
 from sqlalchemy import insert, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from mini_jira.task.schemas import TaskCreate
 
 
 class TaskRepositoryProtocol(Protocol):

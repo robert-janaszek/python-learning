@@ -1,7 +1,7 @@
 from fastapi import APIRouter, status
 
+from mini_jira.qa.schemas import QaResponse, Question
 from mini_jira.qa.service import answer_question
-from mini_jira.schemas import QaResponse, Question
 
 
 router = APIRouter(prefix="/qa")

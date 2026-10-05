@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, status
 from fastapi.responses import StreamingResponse
 
+from mini_jira.chat.schemas import ChatPrompt
 from mini_jira.chat.service import ChatService
 from mini_jira.dependencies import get_chat_service
-from mini_jira.schemas import ChatPrompt
 
 
 router = APIRouter(prefix="/chat")

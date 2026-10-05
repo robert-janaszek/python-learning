@@ -4,8 +4,9 @@ import numpy as np
 import lancedb
 from mini_jira.lance_models import HelpChunksModel
 from mini_jira.llm_client import client, get_embedding
-from mini_jira.schemas import QaResponse
 from sentence_transformers import CrossEncoder
+
+from mini_jira.qa.schemas import QaResponse
 
 
 db = lancedb.connect("./.lancedb")

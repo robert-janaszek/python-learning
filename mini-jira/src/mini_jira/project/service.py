@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from mini_jira.project.repository import ProjectRepositoryProtocol
-from mini_jira.schemas import ProjectCreate, ProjectResponse, ProjectsResponse
+from mini_jira.project.schemas import ProjectCreate, ProjectResponse, ProjectsResponse
 
 class ProjectService:
     def __init__(self, project_repository: ProjectRepositoryProtocol, session: AsyncSession):

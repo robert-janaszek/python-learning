@@ -4,7 +4,7 @@ from openai.types.chat import ChatCompletionToolParam
 from pydantic import ValidationError
 
 from mini_jira.project.service import ProjectService
-from mini_jira.schemas import TaskCreate
+from mini_jira.task.schemas import TaskCreate
 from mini_jira.task.service import TaskService
 
 
