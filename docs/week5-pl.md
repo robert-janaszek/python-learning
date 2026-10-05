@@ -83,7 +83,7 @@ Wzorzec **ReAct (Reason + Act)** to algorytm, w którym agent działa w pętli `
 2. Przed uruchomieniem skrypt wstawia projekt „Backend” z trzema zadaniami, jeśli ich nie ma: dwa otwarte z priorytetem high („Napraw login”, „Padł deploy”) i jedno ukończone low („Opis README”). Agent dostaje jedno polecenie: „Znajdź projekt Backend, policz otwarte zadania i podaj, ile z nich ma priorytet high”. Do odpowiedzi dochodzi trzema funkcjami:
 
    * `find_project(name: str) -> int | str` — przy jednym projekcie o tej nazwie zwraca jego `id`. Przy braku projektu albo przy kilku o tej samej nazwie zwraca opis błędu.
-   * `list_tasks(project_id: int, status: Literal["open", "completed", "all"] = "all") -> list[dict]` — tytuł, priorytet i `is_completed`. Argument `status` wybiera otwarte, ukończone albo wszystkie.
+   * `list_tasks(project_id: int, status: Literal["open", "completed", "all"] = "all") -> str` — tekst JSON z tytułem, priorytetem i `is_completed`. Argument `status` wybiera otwarte, ukończone albo wszystkie. Przy braku projektu zwraca opis błędu. Do modelu idzie ten string, nie lista obiektów.
    * `count_by_priority(project_id: int, status: Literal["open", "completed", "all"] = "all") -> dict[str, int]` — liczby dla low, medium i high wśród zadań o podanym `status`.
 
    Dla tego polecenia oba wywołania idą ze `status="open"`. Sens odpowiedzi: dwa otwarte, oba high.

@@ -24,6 +24,7 @@ class TaskResponse(BaseModel):
     id: int
     title: str
     is_completed: bool
+    priority: Literal["low", "medium", "high"]
     project_id: int
 
 class ChatPrompt(BaseModel):
