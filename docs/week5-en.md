@@ -84,7 +84,7 @@ The client receives the list of schemas in the `tools` argument. It does not rec
 
    * `find_project(name: str) -> int | str` — returns the `id` when exactly one project has that name. When none match, or more than one does, it returns an error description.
    * `list_tasks(project_id: int, status: Literal["open", "completed", "all"] = "all") -> str` — a JSON string with title, priority, and `is_completed`. The `status` argument selects open, completed, or all tasks. When the project is missing, it returns an error description. The model receives that string, not a list of objects.
-   * `count_by_priority(project_id: int, status: Literal["open", "completed", "all"] = "all") -> dict[str, int]` — counts of low, medium, and high among tasks with the given `status`.
+   * `count_by_priority(project_id: int, status: Literal["open", "completed", "all"] = "all") -> str` — a string with the counts of low, medium, and high among tasks with the given `status`. When the project is missing, it returns an error description. The model receives that string, not a dict.
 
    For this instruction both calls use `status="open"`. The answer means: two open tasks, both high.
 3. After 5 iterations the loop stops and returns a message that the step limit was reached.

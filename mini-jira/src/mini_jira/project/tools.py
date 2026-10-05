@@ -20,12 +20,14 @@ def make_list_projects(project_service: ProjectService):
 def make_find_project(project_service: ProjectService):
     async def find_project(name: str) -> int | str:
         projects = await project_service.get_projects()
-        project = next((p for p in projects if p.name == name), None)
+        projects_by_name = [project for project in projects if project.name == name]
+        if len(projects_by_name) > 1:
+            return "More than one project was found with that name."
 
-        if project is None:
+        if len(projects_by_name) == 0:
             return "Project was not found"
         
-        return project.id
+        return projects_by_name[0].id
 
     tool: ChatCompletionToolParam = {
         "type": "function",

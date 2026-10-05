@@ -110,11 +110,17 @@ async def run_agentic_loop():
         messages: list[ChatCompletionMessageParam] = [
             {
                 "role": "user",
-                "content": "Create task `fix login` in Backend project with critical priority"
+                "content": "Find the Backend project, count its open tasks, and say how many of them have priority high."
             }
         ]
 
+        iterations = 0
+
         while message_queued:
+            iterations += 1
+            if iterations > 5:
+                print("Step limit reached")
+                return
             message_queued = False
             response_message = await call_llm_agent(
                 messages,
