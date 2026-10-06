@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, status
 
-from mini_jira.dependencies import get_task_service
+from mini_jira.task.dependencies import get_task_service
 from mini_jira.task.schemas import TaskCreate, TaskResponse
 from mini_jira.task.service import TaskService
 

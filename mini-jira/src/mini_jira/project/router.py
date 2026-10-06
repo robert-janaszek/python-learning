@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, status
 
-from mini_jira.dependencies import get_project_service
+from mini_jira.project.dependencies import get_project_service
 from mini_jira.project.schemas import ProjectCreate, ProjectResponse, ProjectsResponse
 from mini_jira.project.service import ProjectService
 

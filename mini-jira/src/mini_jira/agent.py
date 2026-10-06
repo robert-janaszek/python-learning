@@ -6,9 +6,10 @@ from typing import Any, Awaitable, Callable
 from openai.types.chat import ChatCompletionMessage, ChatCompletionMessageParam, ChatCompletionToolUnionParam
 
 from mini_jira.database import AsyncSessionLocal
-from mini_jira.dependencies import get_project_repository, get_project_service, get_task_repository, get_task_service
 from mini_jira.llm_client import client
+from mini_jira.project.dependencies import get_project_repository, get_project_service
 from mini_jira.project.tools import make_find_project, make_list_projects
+from mini_jira.task.dependencies import get_task_repository, get_task_service
 from mini_jira.task.tools import make_count_by_priority, make_create_task, make_list_tasks
 
 type Tool = Callable[..., Awaitable[Any]]

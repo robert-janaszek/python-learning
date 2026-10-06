@@ -1,7 +1,8 @@
 import asyncio
 from mini_jira.database import AsyncSessionLocal
-from mini_jira.dependencies import get_project_repository, get_project_service, get_task_repository, get_task_service
+from mini_jira.project.dependencies import get_project_repository, get_project_service
 from mini_jira.project.schemas import ProjectCreate
+from mini_jira.task.dependencies import get_task_repository, get_task_service
 from mini_jira.task.schemas import TaskCreate
 
 
