@@ -8,9 +8,13 @@ class AgentMessageCreate(BaseModel):
     role: Literal["system", "user", "assistant", "tool"]
     content: str
 
+
 class AgentMessageResponse(BaseModel):
     id: int
     session_id: str
     role: Literal["system", "user", "assistant", "tool"]
     content: str
     created_at: datetime
+
+class AgentSendMessage(BaseModel):
+    content: str
