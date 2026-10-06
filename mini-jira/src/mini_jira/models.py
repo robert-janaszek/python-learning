@@ -25,3 +25,12 @@ class TaskModel(Base):
     is_completed: Mapped[bool] = mapped_column(default=False)
     project_id: Mapped[int] = mapped_column(ForeignKey("projects.id"))
     project: Mapped["ProjectModel"] = relationship(back_populates="tasks")
+
+class AgentMessagesModel(Base):
+    __tablename__ = "agent_messages"
+    
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    session_id: Mapped[str] = mapped_column(String(255), index=True)
+    role: Mapped[Literal["system", "user", "assistant", "tool"]] = mapped_column(String(9))
+    content: Mapped[str] = mapped_column(String(64000))
+    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(UTC))
