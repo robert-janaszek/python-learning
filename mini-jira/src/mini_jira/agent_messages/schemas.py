@@ -7,6 +7,7 @@ class AgentMessageCreate(BaseModel):
     session_id: str
     role: Literal["system", "user", "assistant", "tool"]
     content: str
+    created_at: datetime | None = None
 
 
 class AgentMessageResponse(BaseModel):
@@ -15,6 +16,7 @@ class AgentMessageResponse(BaseModel):
     role: Literal["system", "user", "assistant", "tool"]
     content: str
     created_at: datetime
+
 
 class AgentSendMessage(BaseModel):
     content: str

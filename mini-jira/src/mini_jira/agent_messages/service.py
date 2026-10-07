@@ -32,4 +32,6 @@ class AgentMessagesService:
             content=message.content,
             created_at=message.created_at,
         )
-
+    
+    async def delete_messages(self, session_id: str, ids: list[int]):
+        await self.agent_messages_repository.delete_messages(session_id, ids)

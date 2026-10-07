@@ -4,6 +4,7 @@ from starlette.middleware.base import RequestResponseEndpoint
 from starlette.responses import Response
 
 from fastapi.responses import JSONResponse
+from mini_jira.agent.router import router as agent_router
 from mini_jira.exception import DomainException
 from mini_jira.project.router import router as project_router
 from mini_jira.qa.router import router as qa_router
@@ -30,3 +31,4 @@ app.include_router(project_router)
 app.include_router(task_router)
 app.include_router(chat_router)
 app.include_router(qa_router)
+app.include_router(agent_router)

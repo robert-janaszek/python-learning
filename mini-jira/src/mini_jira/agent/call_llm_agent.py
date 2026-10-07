@@ -24,3 +24,26 @@ async def call_llm_agent(
     )
 
     return response.choices[0].message
+
+async def call_compaction_agent(
+    messages: list[ChatCompletionMessageParam]
+):
+    response = await client.chat.completions.create(
+        model="qwen/qwen3.6-35b-a3b",
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "You summarize older mini-jira conversation turns. "
+                    "The messages are history, not a new request. "
+                    "Do not call tools and do not answer the user. "
+                    "Keep project names, task counts, priorities, and decisions. "
+                    "Leave out greetings and repeated details. "
+                    "Reply with only the summary, starting with \"Summary:\"."
+                ),
+            },
+            *messages,
+        ],
+    )
+
+    return response.choices[0].message

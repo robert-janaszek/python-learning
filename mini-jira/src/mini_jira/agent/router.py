@@ -22,13 +22,12 @@ async def send_agent_message(
         role="user",
     ))
 
-    # run_agentic_loop(session_id, )
     answer = await agent_service.run_agentic_loop(session_id)
 
-    # response = agent
-    # await agent_message_service.save_message(AgentMessageCreate(
-    #     session_id=session_id,
-    #     content=response,
-    #     role="assistant",
-    # ))
+    await agent_message_service.save_message(AgentMessageCreate(
+        session_id=session_id,
+        content=answer,
+        role="assistant",
+    ))
+
     return answer

@@ -1,5 +1,5 @@
 from typing import Protocol
-from sqlalchemy import insert, select
+from sqlalchemy import delete, insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from collections.abc import Sequence
 
@@ -10,6 +10,7 @@ from mini_jira.models import AgentMessagesModel
 class AgentMessagesRepositoryProtocol(Protocol):
     async def get_messages(self, session_id: str) -> Sequence[AgentMessagesModel]: ...
     async def save_message(self, payload: AgentMessageCreate) -> AgentMessagesModel: ...
+    async def delete_messages(self, session_id: str, ids: list[int]) -> None: ...
 
 
 class AgentMessagesRepository:
@@ -27,13 +28,17 @@ class AgentMessagesRepository:
         return result.scalars().all()
     
     async def save_message(self, payload: AgentMessageCreate) -> AgentMessagesModel:
+        values: dict[str, object] = {
+            "session_id": payload.session_id,
+            "role": payload.role,
+            "content": payload.content,
+        }
+        if payload.created_at is not None:
+            values["created_at"] = payload.created_at
+
         insert_stmt = (
             insert(AgentMessagesModel)
-            .values(
-                session_id=payload.session_id,
-                role=payload.role,
-                content=payload.content,
-            )
+            .values(**values)
             .returning(AgentMessagesModel)
         )
 
@@ -41,4 +46,9 @@ class AgentMessagesRepository:
 
         return result.scalar_one()
 
-        
+    async def delete_messages(self, session_id: str, ids: list[int]) -> None:
+        delete_stmt = delete(AgentMessagesModel).where(
+            AgentMessagesModel.session_id == session_id,
+            AgentMessagesModel.id.in_(ids),
+        )
+        await self.session.execute(delete_stmt)

@@ -4,8 +4,9 @@ from typing import cast
 from fastapi import status
 from openai.types.chat import ChatCompletionMessageParam
 
-from mini_jira.agent.call_llm_agent import call_llm_agent
+from mini_jira.agent.call_llm_agent import call_compaction_agent, call_llm_agent
 from mini_jira.agent.tools import Tool, handle_tool_call
+from mini_jira.agent_messages.schemas import AgentMessageCreate, AgentMessageResponse
 from mini_jira.agent_messages.service import AgentMessagesService
 from mini_jira.exception import DomainException
 
@@ -13,7 +14,6 @@ from mini_jira.project.service import ProjectService
 from mini_jira.project.tools import make_find_project, make_list_projects
 from mini_jira.task.service import TaskService
 from mini_jira.task.tools import make_count_by_priority, make_create_task, make_list_tasks
-
 
 class AgentService:
     def __init__(
@@ -44,13 +44,13 @@ class AgentService:
             "find_project": find_project,
         }
     
-        agent_messages = await self.agent_message_service.get_messages(session_id)
+        compacted_messages = await self.get_messages(session_id)
         messages: list[ChatCompletionMessageParam] = [
             cast(
                 ChatCompletionMessageParam,
                 { "content": message.content, "role": message.role },
             )
-            for message in agent_messages
+            for message in compacted_messages
         ]
 
         message_queued = True
@@ -89,3 +89,65 @@ class AgentService:
             code="ASSISTANT_EMPTY_RESPONSE",
             status_code=status.HTTP_502_BAD_GATEWAY,
         )
+    
+    async def get_messages(self, session_id: str) -> list[AgentMessageResponse]:
+        agent_messages = await self.agent_message_service.get_messages(session_id)
+
+        messages_length = sum([len(message.content) for message in agent_messages])
+
+        if messages_length <= 2000:
+            return agent_messages
+
+        last_user_index = max(i for i,
+            message in enumerate(agent_messages)
+            if message.role == "user")
+        head = agent_messages[:last_user_index]
+        tail = agent_messages[last_user_index:]
+
+        if not head:
+            return agent_messages
+
+        summary = await self.compact(head)
+
+        return [summary, *tail]
+
+    async def compact(
+        self,
+        messages: list[AgentMessageResponse]
+    ) -> AgentMessageResponse:
+        compacted = await call_compaction_agent(
+            [
+                cast(
+                    ChatCompletionMessageParam,
+                    { "content": message.content, "role": message.role },
+                )
+                for message in messages
+            ]
+        )
+        summary = compacted.content
+
+        if summary is None or not summary.strip():
+            raise DomainException(
+                message="The assistant returned no answer",
+                code="ASSISTANT_EMPTY_RESPONSE",
+                status_code=status.HTTP_502_BAD_GATEWAY,
+            )
+        
+        if not summary.startswith("Summary:"):
+            summary = f"Summary: {summary}"
+        
+        await self.agent_message_service.delete_messages(
+            messages[0].session_id,
+            [message.id for message in messages],
+        )
+        
+        saved = await self.agent_message_service.save_message(
+            AgentMessageCreate(
+                session_id=messages[0].session_id,
+                role="system",
+                content=summary,
+                created_at=messages[0].created_at,
+            )
+        )
+
+        return saved
